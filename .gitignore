@@ -1,0 +1,8 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+local-backup
+raw_data
+clean_data
+predictive-text.Rproj

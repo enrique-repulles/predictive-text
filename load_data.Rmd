@@ -1,0 +1,179 @@
+---
+title: "Data cleaning and pre-processing"
+output:
+  pdf_document: default
+  html_notebook: default
+---
+
+# Data cleaning and pre-processing
+
+##Introduction
+
+In this section we describe the data cleaning done for the predictive text model project. Specifically we describe the Data loading, sampling, tokenization and "profanity filtering"
+
+## Preliminaries 
+
+The libraries needed to run the code are: 
+```{r}
+library("NLP")
+library("tm")
+```
+
+
+We will work with a small sample of all the data, we define the value in the "sample.size" variable. We also set the random seed for reproducibility.
+```{r}
+set.seed(1234)
+#sample.size=.01
+sample.size=.001
+```
+
+For the "profanity filtering" part, we've used a offensive wordslist from  [www.frontgatemedia.com/new/wp-content/uploads/2014/03/Terms-to-Block.csv]
+
+
+The script for downloading the data is in the file [get_data.R] that can be obtained in the project github [github.com/enrique-repulles/predictive-text]. For execute the code of this document, you must have executed this script before.
+
+## Methods
+
+We describe here some auxiliary methods used for processing the data.
+
+### Load the dataset
+
+The *loadFile* function loads the file and extract a random subset of lines.
+
+```{r}
+loadFile<-function(myfilename, sample.proportion)
+{
+  raw.data = readLines(myfilename,warn = FALSE,skipNul = TRUE);
+  sample<-1==rbinom(n=length(raw.data), p=sample.proportion,size=1)
+  raw.data[sample]
+}
+```
+
+
+### Text Tokenizing and cleaning: 
+
+With the function *extractSentences*, we extract a vector of sentences from the data set.  
+
+For deciding where to split a text into sentences, in the variable endphrase.symbols we store some charactes that define the end of a sentence ('.',';'...)
+
+
+```{r}
+extractSentences<-function (text)
+{
+  endsentence.symbols <- "[.;()!?:]"
+  sentences<-unlist(strsplit(text, split=endsentence.symbols))
+  sentences<-sentences[nchar(sentences)>5]
+}
+```
+
+### Sentence cleaning 
+
+The *cleanSentences* function removes weird characters, and unify the format (lower case words, single spaces between words...).
+
+Also in this step we remove the stop words (like 'the', 'a', 'an'...), using a stop words list from the 'tm' package, and any offensive word ("profanity filtering")
+
+```{r}
+cleanSentences <-function(rawSentences)
+{
+  offensive.words <- readLines("./raw_data/offensive_words.csv")
+  cleanSentences<-rawSentences
+  cleanSentences<-tolower(cleanSentences)
+  cleanSentences<-stripWhitespace(cleanSentences)
+  cleanSentences<-removeNumbers(cleanSentences)
+  cleanSentences<-removePunctuation(cleanSentences, preserve_intra_word_dashes = TRUE)
+  english_stop_words<-stopwords()
+  cleanSentences<-removeWords(cleanSentences,english_stop_words)
+  cleanSentences<-removeWords(cleanSentences,offensive.words)
+  cleanSentences<-trimws(stripWhitespace(cleanSentences))
+}
+```
+
+
+### Cleaning test
+
+We include this function for testing purposes
+
+```{r}
+testCleaning <- function(sentences)
+{
+  data.frame(raw=sentences, clean=cleanSentences(sentences))
+}
+```
+
+### Tokenization
+
+This function get a sentence and return a list of tokens. The "ngram.size" parameter indicates the size of the tokens, so for ngram.size=1, the function returns a list of words, for ngram.size=2 returns a list of bigrams, ngram.size=3 returns a list of trigrams, etc 
+
+```{r}
+tokenize <- function (sentence, ngram.size)
+{
+  words <- unlist(strsplit(sentence," "))
+  result.size <- length(words) - ngram.size + 1 
+  result<- character(result.size)
+  for(i in 1:result.size)
+  {
+    ngram <- paste(words[i:(i+ngram.size-1)], collapse=" ")
+    result[i]<-ngram
+  }
+  result
+}
+```
+
+
+### File tokenization
+
+The *tokenizeFile* process a whole file: loads the file, performs cleaning and tokenization and returns a list of tokens.
+
+The tokens returned are ngrams of several sizes, from 1-grams (words) to 4-grams.
+
+The result is organize in a data frame, whith one row for each token and the following fields: 
+
+- filename: the filethe token cames from.
+- ngram.size: 1,2,3,4 indicating if the token is a 1-gram(single word), 2-gram, 3-gram, 4-gram
+- token:  the text of the token
+
+
+
+```{r}
+tokenizeFile <- function(filename)
+{
+  text<-loadFile(filename, sample.size)
+  rawSentences<-extractSentences(text)
+  cleanSentences<-cleanSentences(rawSentences)
+  
+  ngrams1<-data.frame(token=tokenize(cleanSentences,1)) # Single words
+  ngrams2<-data.frame(token=tokenize(cleanSentences,2)) # Bigrams
+  ngrams3<-data.frame(token=tokenize(cleanSentences,3)) # trigrams
+  ngrams4<-data.frame(token=tokenize(cleanSentences,4)) # 4-grams
+  
+  # Organize results in a single dataframe
+  
+  ngrams1$ngram.size<-1
+  ngrams2$ngram.size<-2
+  ngrams3$ngram.size<-3
+  ngrams4$ngram.size<-4
+  
+  result <- rbind(ngrams1,ngrams2,ngrams3,ngrams4)
+  result$origin<-filename
+  result
+}
+```
+
+
+## Process execution
+
+Using the functions described in the previous section, we process the three files from the corpus. The result is stored in a file for the following analysis step.
+
+
+```{r, eval=FALSE, include=FALSE}
+file1Processing<-tokenizeFile("./raw_data/final/en_US/en_US.blogs.txt")
+file2Processing<-tokenizeFile("./raw_data/final/en_US/en_US.news.txt")
+file3Processing<-tokenizeFile("./raw_data/final/en_US/en_US.twitter.txt")
+
+tokens<-rbind(file1Processing,file2Processing,file3Processing)
+save(tokens,file="./clean_data/tokens.dat")
+
+#cleanup
+rm(file1Processing,file2Processing,file3Processing)
+```
+
