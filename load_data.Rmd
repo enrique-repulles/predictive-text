@@ -7,7 +7,9 @@ output:
 
 # Data cleaning and pre-processing
 
+
 ##Introduction
+
 
 In this section we describe the data cleaning done for the predictive text model project. Specifically we describe the Data loading, sampling, tokenization and "profanity filtering"
 
