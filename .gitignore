@@ -4,5 +4,6 @@
 .Ruserdata
 local-backup
 raw_data
-clean_data
 predictive-text.Rproj
+load_data.nb.html
+load_data.pdf
