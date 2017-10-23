@@ -38,6 +38,19 @@ The script for downloading the data is in the file [get_data.R] that can be obta
 
 We describe here some auxiliary methods used for processing the data.
 
+
+```{r}
+
+# Read the list of offensive words 
+offensive.words<-readLines("raw_data/Terms-to-Block.csv")
+offensive.words<-block[5:length(offensive.words)]
+offensive.words<-gsub("[\"]","",offensive.words)
+offensive.words<-gsub("[,]","",offensive.words)
+
+
+```
+
+
 ### Load the dataset
 
 The *loadFile* function loads the file and extract a random subset of lines.
@@ -72,19 +85,20 @@ extractSentences<-function (text)
 
 The *cleanSentences* function removes weird characters, and unify the format (lower case words, single spaces between words...).
 
-Also in this step we remove the stop words (like 'the', 'a', 'an'...), using a stop words list from the 'tm' package, and any offensive word ("profanity filtering")
+Also, any offensive word ("profanity filtering") are removed.
+
+About stop words (like 'the', 'a', 'an'...): I've decided to keep them. In text clasification they are usually removed, but I guess that for prediction they will be usefull.
 
 ```{r}
 cleanSentences <-function(rawSentences)
 {
-  offensive.words <- readLines("./raw_data/offensive_words.csv")
   cleanSentences<-rawSentences
   cleanSentences<-tolower(cleanSentences)
   cleanSentences<-stripWhitespace(cleanSentences)
   cleanSentences<-removeNumbers(cleanSentences)
   cleanSentences<-removePunctuation(cleanSentences, preserve_intra_word_dashes = TRUE)
-  english_stop_words<-stopwords()
-  cleanSentences<-removeWords(cleanSentences,english_stop_words)
+  # english_stop_words<-stopwords()
+  # cleanSentences<-removeWords(cleanSentences,english_stop_words)
   cleanSentences<-removeWords(cleanSentences,offensive.words)
   cleanSentences<-trimws(stripWhitespace(cleanSentences))
 }
@@ -173,9 +187,13 @@ file2Processing<-tokenizeFile("./raw_data/final/en_US/en_US.news.txt")
 file3Processing<-tokenizeFile("./raw_data/final/en_US/en_US.twitter.txt")
 
 tokens<-rbind(file1Processing,file2Processing,file3Processing)
+tokens$token <- as.character(tokens$token)
+
 save(tokens,file="./clean_data/tokens.dat")
 
 #cleanup
 rm(file1Processing,file2Processing,file3Processing)
+
+
 ```
 
