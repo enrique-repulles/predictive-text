@@ -1,11 +1,20 @@
 ---
 title: "Exploratory data analysis"
 output:
-  pdf_document: default
-  html_notebook: default
-  html_document: default
+  pdf_document:
+    number_sections: yes
+  html_notebook:
+    number_sections: yes
+  html_document:
+    number_sections: yes
 ---
 
+
+```{r global_options, include=FALSE}
+#knitr::opts_chunk$set(fig.width=12, fig.height=8, echo=FALSE, warning=FALSE, message=FALSE)
+knitr::opts_chunk$set(echo=FALSE, warning=FALSE, message=FALSE)
+
+```
 
 # Introduction
 
@@ -30,9 +39,6 @@ For the "profanity filtering" cleaning, we've used a offensive words list from  
 
 
 
-
-
-
 For deciding where to split a text into sentences, in the variable endphrase.symbols we store some charactes that define the end of a sentence ('.',';'...)
 
 The *cleanSentences* function removes weird characters, and unify the format (lower case words, single spaces between words...).
@@ -43,7 +49,7 @@ About stop words (like 'the', 'a', 'an'...): I've decided to keep them. In text 
 
 
 
-```{r, include=FALSE}
+```{r}
 
 ## Preliminaries 
 
@@ -177,6 +183,9 @@ tokenizeFile <- function(filename)
 
 
 
+[File Count]
+
+
 ```{r}
 # Using the functions described in the previous section, we process the three 
 # files from the corpus. The result is stored in a file for the following analysis step.
@@ -194,9 +203,6 @@ fileCounts
 ```
 
 
-
-
-### PLOTS
 
 plot: barra con el tamaño de los tres ficheros
 ```{r}
@@ -237,15 +243,13 @@ file3Processing<-tokenizeFile("en_US.twitter.txt")
 tokens<-rbind(file1Processing,file2Processing,file3Processing)
 tokens$token <- as.character(tokens$token)
 
-save(tokens,file="./clean_data/tokens.dat")
-
 #cleanup
 rm(file1Processing,file2Processing,file3Processing)
 ```
 
 
 
-
+[Counts de palabras y ngram size]
 
 
 
@@ -272,13 +276,15 @@ ggplot(wordCounts, aes(x=filename,weight=x)) + geom_bar()
 
 
 
-# Word frecuencies
+# Word frequency analysis
 
 (indicar que se juntan  los 3 ficheros)
 
 
 
 ```{r}
+
+# calculations 
 
 frecuency<-function(ngram.size)
 {
@@ -327,71 +333,77 @@ quatrigram.frequencies[quatrigram.frequencies$freq>3,c("token","freq")]
 
 
 
-Boxplot 
-
-```{r}
-
-ggplot(total.frequencies, aes(group=ngram.size, x=token, y=freq)) + geom_boxplot()
-
-
-```
-
-
-
+Expllicar antes como uso ngram.size
 
 
 Historama de frecuencias
 
 ```{r}
+#calculos previos
 
-total.frequencies
 
+calculate.freq.distribution <- function (ngram.size)
+{
+  result<-data.frame(table(total.frequencies$freq))
+  names(result)<-c("freq","n")
+  result$freq<-as.numeric(result$freq)
+  result$ngram.size<-ngram.size
+  result
+}
 
-ggplot(total.frequencies, aes(x=freq)) + geom_histogram(binwidth = 10) +
-      coord_cartesian(ylim = c(0, 10)) 
+frequency.distribution<-rbind(calculate.freq.distribution(1),
+                              calculate.freq.distribution(2),
+                              calculate.freq.distribution(3),
+                              calculate.freq.distribution(4))
 
 
 
 ```
 
 
+Distribucion de palabras
 
-
-Historama de frecuencias que ocurren mas de 2 veces
-
-Barra: 2 veces vs mas de 2 veces
-
-
-
-
-# Exploratory data analysis
-
-## Basic summaries
-- Word counts, line counts, and basic data tables
-
-
-- Basic plots - Histograms 
-
-
-
-## Word Analysis
 
 ```{r}
-
-str(tokens$token)
-
-frecuencies<-table (tokens[tokens$ngram.size==1,]$token)
-
-table(frecuencies)
-
-#8596 unique words (appears only once)
-#2247 appears twice...
-
-hist(frecuencies)
-
-hist(log(frecuencies))
+ggplot(frequency.distribution[frequency.distribution$ngram==1,], aes(x=freq,y=n)) + geom_col() 
 
 ```
 
+
+No se ve nada,probamos con logaritmos
+
+
+```{r}
+ggplot(frequency.distribution[frequency.distribution$ngram==1,], aes(x=freq,y=log(n))) + geom_col() 
+
+```
+
+
+Distribucion de ngramas
+```{r}
+
+# Distribucion de palabras
+
+
+#Distribution of ngrams
+
+ggplot(frequency.distribution[frequency.distribution$ngram!=1 & frequency.distribution$freq>5, ], aes(x=freq,y=log(n))) + geom_col() +  
+  facet_grid(.~ngram.size) 
+
+
+
+
+```
+
+
+# Conclusiones
+
+
+# Future directions 
+
+
+# TODO 
+
+- labels in plots
 
 
