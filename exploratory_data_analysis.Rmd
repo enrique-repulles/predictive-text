@@ -1,10 +1,10 @@
 ---
 title: 'Text Prediction: Exploratory data analysis'
-author: "Enrique RepullÃ©s"
+author: "Enrique Repulles"
 output:
-  html_notebook:
-    number_sections: yes
   html_document:
+    number_sections: yes
+  html_notebook:
     number_sections: yes
   pdf_document:
     number_sections: yes
@@ -21,7 +21,6 @@ library("knitr")
 
 
 ```{r global_options, include=FALSE}
-#knitr::opts_chunk$set(fig.width=12, fig.height=8, echo=FALSE, warning=FALSE, message=FALSE)
 knitr::opts_chunk$set(echo=FALSE, warning=FALSE, message=FALSE, fig.width=6, fig.height=3, fig.align="center", cache = TRUE)
 
 ```
@@ -33,19 +32,14 @@ The purpose of this document is to show the exploratory analysis and text mining
 The source for this document and other project code can be found in [github.com/enrique-repulles/predictive-text](https://github.com/enrique-repulles/predictive-text).
 
 ```{r preliminaries}
-## Preliminaries 
-
 set.seed(1234)
-#sample.size=.01
 sample.size=.001
 ```
 
 
 # Data sources
 
-The text corpus was obtained from  
-
-[Coursera-SwiftKey.zip](https://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip)
+The text corpus was obtained from  [Coursera-SwiftKey.zip](https://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip)
 
 An script for download this file can be found in the project github page.
 
@@ -204,9 +198,9 @@ kable(fileCounts, col.names = c("Filename","Total rows","rows in sample","senten
 ```
 
 
-```{r plot_file_counts}
+```{r plot_file_counts, fig.width=3, fig.height=2}
 
-ggplot(fileCounts, aes(x=filename,weight=totalrows)) + geom_bar()
+ggplot(fileCounts, aes(x=filename,weight=totalrows)) + geom_bar() + ggtitle("Number of rows per file")
 
 ```
 
@@ -223,13 +217,13 @@ plotdata1$type <- "sample rows"
 plotdata2<-data.frame(filename=fileCounts$filename, weight=fileCounts$samplesentences) 
 plotdata2$type <- "sample sentences"
 
-ggplot(rbind(plotdata1,plotdata2), aes(x=filename,weight=weight, fill=type)) + geom_bar(position="dodge")
+ggplot(rbind(plotdata1,plotdata2), aes(x=filename,weight=weight, fill=type)) + geom_bar(position="dodge") + ggtitle("number of row and sentences per sampled file")
 
 ```
 
 
 
-## Word frequency analysis
+# Word frequency analysis
 
 In this section we analyze the frequency of the words in the corpus. Different kinds of ngrams are also analyzed. 
 
@@ -269,19 +263,19 @@ kable(wordCounts, col.names = c("Filename","ngram size","count"), caption = "Tok
 And a plot with the same information: 
 
 
-```{r plot_word_counts}
-ggplot(wordCounts, aes(x=filename,weight=x)) + geom_bar()
+```{r plot_word_counts, fig.width=3, fig.height=2}
+ggplot(wordCounts, aes(x=filename,weight=x)) + geom_bar() + ggtitle("Number of words per file")
 ```
 
 
 
-## Word frequency distribution 
+# Word frequency distribution 
 
-Now we examine the distributions of the frequencies, that is how many words appears one time, how many appears two times etc. 
+Now we examine the distributions of the frequency, that is how many words appears one time, how many appears two times etc. 
 In this sections, the data of the three files are add together.
 
 
-```{r process_frequencies}
+```{r process_frequency}
 
 # calculations 
 
@@ -294,66 +288,64 @@ frequency<-function(ngram.size)
 }
 
 
-word.frequencies<-frequency(1)
+word.frequency<-frequency(1)
 
 
 
-kable(data.frame(unclass(summary(word.frequencies$freq))))
-bigram.frequencies<-frequency(2)
-kable(data.frame(unclass(summary(bigram.frequencies$freq))))
-trigram.frequencies<-frequency(3)
-kable(data.frame(unclass(summary(trigram.frequencies$freq))))
-quatrigram.frequencies<-frequency(4)
-kable(data.frame(unclass(summary(quatrigram.frequencies$freq))))
+kable(data.frame(unclass(summary(word.frequency$freq))), caption = "Word frequency summary", col.names = "Frequency")
+bigram.frequency<-frequency(2)
+kable(data.frame(unclass(summary(bigram.frequency$freq))), caption = "Bigram frequency summary", col.names =  "Frequency")
+trigram.frequency<-frequency(3)
+kable(data.frame(unclass(summary(trigram.frequency$freq))), caption = "Trigram frequency summary", col.names =  "Frequency")
+quatrigram.frequency<-frequency(4)
+kable(data.frame(unclass(summary(quatrigram.frequency$freq))), caption = "4-gram frequency summary", col.names =  "Frequency")
 
 
-total.frequencies<-rbind(word.frequencies,bigram.frequencies,trigram.frequencies,quatrigram.frequencies) 
+total.frequency<-rbind(word.frequency,bigram.frequency,trigram.frequency,quatrigram.frequency) 
 
-order.inexes<-rev(order(total.frequencies$freq))
+order.inexes<-rev(order(total.frequency$freq))
 
-total.frequencies<-total.frequencies[order.inexes,]
+total.frequency<-total.frequency[order.inexes,]
 
 ##chunk cleanup
-rm(word.frequencies,bigram.frequencies,trigram.frequencies,quatrigram.frequencies,order.inexes)
-
-
-
-
+rm(word.frequency,bigram.frequency,trigram.frequency,quatrigram.frequency,order.inexes)
 
 
 ```
 
 
-Below, a list with the most frequent words is shown (ngram size=1):
+Below, some lists are shown with frequent words / bigrams/trigrams/4-grams:
 
 ```{r show_most_frequent_words}
 
-table.index<-(total.frequencies$ngram.size==1 & total.frequencies$freq>600)
-kable(total.frequencies[table.index,c("token","freq")], row.names = FALSE, caption = "Most frequent words")
+table.index<-(total.frequency$ngram.size==1 & total.frequency$freq>600)
+kable(total.frequency[table.index,c("token","freq")], row.names = FALSE, caption = "Most frequent words")
 
 ```
 
-the most frequent bigrams (ngram size=2):
+
+
 ```{r show_most_frequent_2grams}
 
-table.index<-(total.frequencies$ngram.size==2 & total.frequencies$freq>80)
-kable(total.frequencies[table.index,c("token","freq")], row.names = FALSE, caption = "Most frequent bigrams")
+table.index<-(total.frequency$ngram.size==2 & total.frequency$freq>80)
+kable(total.frequency[table.index,c("token","freq")], row.names = FALSE, caption = "Most frequent bigrams")
 
 ```
 
-the most frequent trigrams (ngram size=3):
+
 ```{r show_most_frequent_3grams}
 
-table.index<-(total.frequencies$ngram.size==3 & total.frequencies$freq>11)
-kable(total.frequencies[table.index,c("token","freq")], row.names = FALSE, caption = "Most frequent trigrams")
+table.index<-(total.frequency$ngram.size==3 & total.frequency$freq>11)
+kable(total.frequency[table.index,c("token","freq")], row.names = FALSE, caption = "Most frequent trigrams")
 
 ```
 
-and the most frequent 4-grams (ngram size=4):
+
+
 ```{r show_most_frequent_4grams}
 
-table.index<-(total.frequencies$ngram.size==4 & total.frequencies$freq>3)
-kable(total.frequencies[table.index,c("token","freq")], row.names = FALSE, caption = "Most frequent 4-grams")
+table.index<-(total.frequency$ngram.size==4 & total.frequency$freq>3)
+kable(total.frequency[table.index,c("token","freq")], row.names = FALSE, caption = "Most frequent 4-grams")
 
 
 ```
@@ -366,8 +358,8 @@ kable(total.frequencies[table.index,c("token","freq")], row.names = FALSE, capti
 
 calculate.freq.distribution <- function (ngram.size)
 {
-  frequencies<-total.frequencies[total.frequencies$ngram.size==ngram.size,"freq"]
-  result<-data.frame(table(frequencies))
+  frequency<-total.frequency[total.frequency$ngram.size==ngram.size,"freq"]
+  result<-data.frame(table(frequency))
   names(result)<-c("freq","n")
   result$freq<-as.numeric(result$freq)
   result$ngram.size<-ngram.size
@@ -384,11 +376,11 @@ frequency.distribution<-rbind(calculate.freq.distribution(1),
 ```
 
 
-We show now a plot with the distribution of frequencies:
+We show now a plot with the distribution of frequency, that is, how many words appears one time, two times, etc:
 
 
 ```{r plot_word_histograms}
-ggplot(frequency.distribution[frequency.distribution$ngram==1,], aes(x=freq,y=n)) + geom_col() 
+ggplot(frequency.distribution[frequency.distribution$ngram==1,], aes(x=freq,y=n)) + geom_col()  + ggtitle("Word frequency distribution") 
 ```
 
 
@@ -398,7 +390,7 @@ It seems that mostly all words appears only once or twice, but it is difficult t
 
 ```{r plot_word_histograms_log}
 plot.data<-frequency.distribution[frequency.distribution$ngram==1,]
-ggplot(plot.data, aes(x=freq,y=log(n))) + geom_col() 
+ggplot(plot.data, aes(x=freq,y=log(n))) + geom_col() + ggtitle("Word frequency distribution(log scale)") 
 
 ```
 
@@ -408,14 +400,14 @@ We show now the same plot for the all the others ngram sizes (bigrams, 3-gram, 4
 
 #Distribution of ngrams
 plot.data<-frequency.distribution[frequency.distribution$ngram!=1, ]
-ggplot(plot.data, aes(x=freq,y=log(n))) + geom_col() + facet_grid(.~ngram.size) 
+ggplot(plot.data, aes(x=freq,y=log(n))) + geom_col() + facet_grid(.~ngram.size) +ggtitle("n-gram frequency distribution (log scale)")
 
 
 ```
 
 
 
-## Coverage
+# Text Coverage
 
 We will look now about the text coverage. How many unique words cover 50% of all words in the text? 
 
@@ -426,7 +418,7 @@ We will look now about the text coverage. How many unique words cover 50% of all
 
 calculateCoverage <-function (coverage, ngram.size)
 {
-  freq<-total.frequencies[total.frequencies$ngram.size==ngram.size,"freq"]
+  freq<-total.frequency[total.frequency$ngram.size==ngram.size,"freq"]
   coverage.limit<-sum(freq)*coverage
   for (i in 1:length(freq))
   {
@@ -441,11 +433,11 @@ calculateCoverage <-function (coverage, ngram.size)
 }
 
 
-coverages<-data.frame(ngram.size=unique(total.frequencies$ngram.size))
+coverages<-data.frame(ngram.size=unique(total.frequency$ngram.size))
 
-coverages$total.words<-sapply(X=coverages$ngram.size, FUN=function(n) {sum(total.frequencies[total.frequencies$ngram.size==n,]$freq)} )
+coverages$total.words<-sapply(X=coverages$ngram.size, FUN=function(n) {sum(total.frequency[total.frequency$ngram.size==n,]$freq)} )
 
-coverages$total.different.tokens<-sapply(X=coverages$ngram.size, FUN=function(n) {nrow(total.frequencies[total.frequencies$ngram.size==n,])} )
+coverages$total.different.tokens<-sapply(X=coverages$ngram.size, FUN=function(n) {nrow(total.frequency[total.frequency$ngram.size==n,])} )
 coverages$coverage50<-sapply(X=coverages$ngram.size, FUN=function(n) {calculateCoverage(.5,n)} )
 coverages$coverage75<-sapply(X=coverages$ngram.size, FUN=function(n) {calculateCoverage(.75,n)} )
 coverages$coverage90<-sapply(X=coverages$ngram.size, FUN=function(n) {calculateCoverage(.9,n)} )
@@ -453,7 +445,7 @@ coverages$coverage90<-sapply(X=coverages$ngram.size, FUN=function(n) {calculateC
 ```
 
 
-For individual words (not ngrams), we've found that 'r coverages$coverage50[1]' words cover 50% of the words in the corpus. 
+For individual words (not ngrams), we've found that `r coverages$coverage50[1]` words cover 50% of the words in the corpus. 
 
 In the following table, we show the word coverage for 50% of the text, 75% and 90%, for single words, bigram, trigrams and 4-grams.
 
@@ -487,13 +479,4 @@ The provisional idea of the prediction model is:
 
 The coverage information can be used to store the model parameters efficiently. We have seen that few words cover most of the text, but this do not stand for ngrams, so some data structure will be needed to organize the ngrams according with the words it contains.
 
-
-
-
-# TODO 
-
-- labels in plots y tablas
-- check gramatica
-- check formato correcto para web
-- check orden subsecciones
 
