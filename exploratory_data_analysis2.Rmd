@@ -1,0 +1,129 @@
+---
+title: 'Text Prediction: Exploratory data analysis'
+author: "Enrique Repulles"
+output:
+  pdf_document:
+    number_sections: yes
+  html_notebook:
+    number_sections: yes
+  html_document:
+    number_sections: yes
+---
+
+
+```{r imports, , include=FALSE}
+# The libraries needed to run the code
+library("NLP")
+library("tm")
+library("ggplot2")
+library("knitr")
+```
+
+
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(echo=FALSE, warning=FALSE, message=FALSE, fig.width=6, fig.height=3, fig.align="center", cache = TRUE)
+
+```
+
+
+
+Load data and save in RDS format
+
+```{r, eval=FALSE, include=FALSE}
+sampleFile<-function(myfilename, sample.proportion)
+{
+  path<-paste0("./raw_data/final/en_US/",myfilename)
+  out.path<-paste0("./clean_data/",strsplit(myfilename,split = ".txt")[[1]],".sampled.txt")
+print(out.path)  
+  raw.data = readLines(path,warn = FALSE,skipNul = TRUE);
+  sample<-1==rbinom(n=length(raw.data), p=sample.proportion,size=1)
+  data<-raw.data[sample]
+  # saveRDS(object = data, file = out.path)
+  writeLines(data,con=out.path)
+  
+}
+
+# sampleFile("en_US.blogs.txt", .001)
+# sampleFile("en_US.news.txt", .001)
+# sampleFile("en_US.twitter.txt", .001)
+
+
+```
+
+
+
+
+```{r}
+?VectorSource
+
+corpus.source<-DirSource("./clean_data/")
+corpus.source
+corpus<-SimpleCorpus(corpus.source,control = list(language = "en"))
+summary(corpus)
+
+
+```
+
+```{r}
+corpus <- tm_map(corpus, removeNumbers)
+corpus <- tm_map(corpus, removePunctuation)
+corpus <- tm_map(corpus , stripWhitespace)
+corpus <- tm_map(corpus, tolower)
+corpus <- tm_map(corpus, removeWords, stopwords("english")) # quitar
+```
+
+
+
+
+```{r}
+
+tdm <- TermDocumentMatrix(corpus)
+inspect(tdm)
+
+
+
+
+```
+
+
+
+
+```{r}
+dtm <- DocumentTermMatrix(corpus)
+inspect(dtm)
+```
+
+
+```{r}
+#install.packages("RWeka")
+#install.packages("rJava")
+
+library(RWeka)
+
+?NGramTokenizer
+```
+
+
+
+
+```{r}
+TrigramTokenizer <- function(x) NGramTokenizer(x, Weka_control(min = 3, max = 3))
+tdm3 <- TermDocumentMatrix(corpus, control = list(tokenizeNO_FUCIONA = TrigramTokenizer))
+tdm3 <- removeSparseTerms(tdm3, 0.75)
+inspect(tdm3)
+
+```
+
+
+
+
+- tm::c.VCorpus		Combine Corpora, Documents, Term-Document Matrices, and Term Frequency Vectors
+- tm::findAssocs		Find Associations in a Term-Document Matrix
+- tm::findMostFreqTerms		Find Most Frequent Terms
+- tm::inspect		Inspect Objects
+- tm::TermDocumentMatrix		Term-Document Matrix
+- tm::plot.TermDocumentMatrix		Visualize a Term-Document Matrix
+- tm::tm_term_score		Compute Score for Matching Terms
+- tm::plot.TermDocumentMatrix		Visualize a Term-Document Matrix
+
+
