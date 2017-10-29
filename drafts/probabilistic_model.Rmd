@@ -1,0 +1,117 @@
+---
+title: "Probabilistic Model"
+author: "ERM"
+date: "29 de octubre de 2017"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## intro
+
+De wikipedia: 
+"En casi todos los casos, los signos de puntuacion se eliminan durante el preproceso"
+
+Un modelo de n-grama es un modelo probabilístico que permite hacer una predicción estadística del próximo elemento de una cierta secuencia de elementos sucedida hasta el momento. Un modelo de n-grama puede ser definido por una *cadena de Markov* de orde n-1.
+
+(Explicación de cadena de Markov tradicional y las de orden n-1)
+
+Debido a limitaciones computacionales y a la normalmente naturaleza abierta de los problemas (suele haber infinitos elementos posibles) , se suele asumir que cada elemento sólo depende de los últimos elementos de la secuencia.
+
+
+Con las técnicas de suavizado intentamos evitar las probabilidades cero producidas por k-gramas no vistos
+
+Posibilidades:
+
+  - Descuento de Laplace: problema: da demasiado porcentaje de la masa total  a los k-gramas no vistos
+  - técnicas de backoff
+  
+backoff (1): 
+
+Si $ N(hw)>0 $ (es un ngrama visto):
+$p(w|h)=\lambda \frac{N(hw)}{\sum_{w'}N(hw')}$
+
+
+Si $ N(hw)=0 $ (es un ngrama no visto nunca):
+$p(w|h)=(1-\lambda) \frac{\beta(h|\hat{w})}{\sum_{w':N(hw')}\beta(w'|\hat{h})}$
+
+backoff (2):
+
+If $C(w_{i-n+1},..w_i) > k$:
+
+$P(w_i|w_{i-n+1},..w_{i-1})=d_{w_{i-n+1},..w_{i}}\frac{C(w_{i-n+1},..w_iw_i)}{C(w_{i-n+1},..w_i)}$ 
+
+Otherwise:
+$P(w_i|w_{i-n+1},..w_{i-1})=\alpha_{w_{i-n+1},..w_{i-1}}P(w_i|w_{i-n+2},..w_{i-1})$ 
+
+Where:
+
+$C(x)$=number of times X appear in training
+
+$w_i$=$i_{th}$  word in the given context
+
+$k$: it is usually chosen to be 0. However empirical testing may find better values for $k$
+
+$d$: is  typically the amount of discounting found by Good-Turing estimation
+
+$\alpha$: ...etc...
+
+
+
+
+
+
+
+A statistical **languaje model** is a probability distribution over sequences of words. Given such a sequence, say of length *m*, it assins a probability $P(w_1,w_2,...,w_m)$ to the whole sequence.
+
+
+### Ngram models
+
+In an n-gram model, the probability $P(w_1,w_2,...,w_m)$  of observing the sentence $w_1w_2...w_m$ is approsximated as 
+
+ $P(w_1,w_2,...,w_m)=...$
+ 
+ Here, it is assumed that the probability of observing the $i^{th}$ word $w_i$ in the context history of the preceding $i-1$  words can be approximated by the probability of observing it in the shortdened context history of the preceding $n-1$ words (nth order Markov property)
+ 
+  $P(w_i|w_{i-(n-1)},...,w_{i-1})=...$
+  
+  
+  Typically, however, the n-gram model probabilities are not derived directly from the frecuency counts, because models derived this way have severe problems when confronted with any n-gram that have not explicity seen before. Instead, some form of *smoothing* is necessary, assigning some of the total probabiloity mass to unseen words or n-grams. 
+  
+  
+  Smoothing(2): 
+  
+  There are problems of balance weight between *infrequent grams* (for example, if a proper name appeared in the training data) and *frequent grams*. Also, items not seen in the training data will be given a probability of $0$ without smoothing.
+  
+  
+  ### Hashing trick 
+  
+  A common alternative to the use of dictionaries is the *hashing trick*, where words are direcly mapped to indices with a hashing function. By mapping word to indices with a hash function, no memory is required to store a dictionary.
+  
+  
+  
+  
+
+Marcar los fines de frase con EOS
+
+
+
+
+
+# Evaluación: 
+
+conjunto de test, validation y training
+dar un ngram sin la ultima palabra e intentar predecirla
+separar cada ngrama en las palabras anteriores y la palabra a predecir
+¿cómo almacenar estos datos de training y test de manera eficiente?
+¿como almacenar si aparecen más de una vez?
+
+Que pasa si para cierto ngrama hay dos terminaciones posibles ambas muy frecuentes? ¿Se muestra la de mayor frecuencia, y por tanto la otra jamas se usará?¿o se muestran ambas o las k que superan cierto umbral?
+
+En validación, medir tambien el porcentaje de recubrimiento para ahorrar memoria: cuantos ngramas poco frecuentes se pueden eliminar y que la prediccion siga iendo buena. Añadir como parámetro de "coste" del modelo el número de ngramas almacenados.
+
+
+Probar primero con un modelo simple (suavizado de Laplace...)
+
