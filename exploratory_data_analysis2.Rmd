@@ -10,6 +10,17 @@ output:
     number_sections: yes
 ---
 
+```{r}
+#Installation issues
+
+#require(devtools)
+# NO install_version("tm", version = "0.6-2", repos = "http://cran.us.r-project.org")
+# 0.7 no procesa bien ngrams, hay que usar  0.6-2 
+# biocLite("Rgraphviz") from bioconductor
+
+```
+
+
 
 ```{r imports, , include=FALSE}
 # The libraries needed to run the code
@@ -17,6 +28,8 @@ library("NLP")
 library("tm")
 library("ggplot2")
 library("knitr")
+
+
 ```
 
 
@@ -43,9 +56,9 @@ print(out.path)
   
 }
 
-# sampleFile("en_US.blogs.txt", .001)
-# sampleFile("en_US.news.txt", .001)
-# sampleFile("en_US.twitter.txt", .001)
+ sampleFile("en_US.blogs.txt", .0001)
+ sampleFile("en_US.news.txt", .0001)
+ sampleFile("en_US.twitter.txt", .0001)
 
 
 ```
@@ -54,22 +67,21 @@ print(out.path)
 
 
 ```{r}
-?VectorSource
-
 corpus.source<-DirSource("./clean_data/")
 corpus.source
-corpus<-SimpleCorpus(corpus.source,control = list(language = "en"))
+corpus<-VCorpus(corpus.source, readerControl = list(reader=readPlain,language = "en"))
 summary(corpus)
 
 
 ```
 
 ```{r}
-corpus <- tm_map(corpus, removeNumbers)
-corpus <- tm_map(corpus, removePunctuation)
-corpus <- tm_map(corpus , stripWhitespace)
-corpus <- tm_map(corpus, tolower)
-corpus <- tm_map(corpus, removeWords, stopwords("english")) # quitar
+
+ corpus <- tm_map(corpus, removeNumbers)
+ corpus <- tm_map(corpus, removePunctuation)
+ corpus <- tm_map(corpus , stripWhitespace)
+# corpus <- tm_map(corpus, tolower)
+# corpus <- tm_map(corpus, removeWords, stopwords("english")) # quitar
 ```
 
 
@@ -78,39 +90,41 @@ corpus <- tm_map(corpus, removeWords, stopwords("english")) # quitar
 ```{r}
 
 tdm <- TermDocumentMatrix(corpus)
-inspect(tdm)
-
-
+#inspect(tdm)
 
 
 ```
 
 
 
-
 ```{r}
-dtm <- DocumentTermMatrix(corpus)
-inspect(dtm)
-```
+#install.packages("Rgraphviz")
 
 
-```{r}
-#install.packages("RWeka")
-#install.packages("rJava")
-
-library(RWeka)
-
-?NGramTokenizer
+plot(tdm) 
 ```
 
 
 
+```{r}
+#dtm <- DocumentTermMatrix(corpus)
+#inspect(dtm)
+```
+
+
 
 ```{r}
-TrigramTokenizer <- function(x) NGramTokenizer(x, Weka_control(min = 3, max = 3))
-tdm3 <- TermDocumentMatrix(corpus, control = list(tokenizeNO_FUCIONA = TrigramTokenizer))
-tdm3 <- removeSparseTerms(tdm3, 0.75)
-inspect(tdm3)
+
+#Weka no funciona muy bien paralelizado
+#BigramTokenizer <- function(x) NGramTokenizer(x, Weka_control(min = 1, max = 1))
+#tdm <- TermDocumentMatrix(corpus, control = list(tokenize = BigramTokenizer))
+```
+
+
+```{r}
+getTokenizers()
+scan_tokenizer(corpus)
+
 
 ```
 
