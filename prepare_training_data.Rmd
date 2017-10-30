@@ -1,0 +1,181 @@
+---
+title: "Prepare training data"
+output: html_notebook
+
+---
+
+
+
+
+```{r imports, , include=FALSE}
+# The libraries needed to run the code
+library("NLP")
+library("tm")
+library("ggplot2")
+library("knitr")
+
+getwd()
+
+
+```
+
+
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(echo=FALSE, warning=FALSE, message=FALSE, fig.width=6, fig.height=3, fig.align="center", cache = TRUE)
+knitr::opts_knit$set(root.dir = rprojroot::find_rstudio_root_file())
+
+
+```
+
+
+
+Load data and save in RDS format
+
+```{r, eval=FALSE, include=FALSE}
+sampleFileBUENO<-function(myfilename, sample.proportion)
+{
+  path<-paste0("./raw_data/final/en_US/",myfilename)
+  out.path<-paste0("./clean_data/",strsplit(myfilename,split = ".txt")[[1]],".sampled.txt")
+  raw.data = readLines(path,warn = FALSE,skipNul = TRUE);
+  sample<-1==rbinom(n=length(raw.data), p=sample.proportion,size=1)
+  data<-raw.data[sample]
+  # saveRDS(object = data, file = out.path)
+  writeLines(data,con=out.path)
+  
+}
+
+
+sampleFile<-function(myfilename, sample.no.se.usa)
+{
+  path<-paste0("./raw_data/final/en_US/",myfilename)
+  out.path<-paste0("./clean_data/",strsplit(myfilename,split = ".txt")[[1]],".sampled.txt")
+  raw.data = readLines(path,warn = FALSE,skipNul = TRUE,n = 3);
+  # saveRDS(object = data, file = out.path)
+  writeLines(raw.data,con=out.path)
+  
+}
+
+
+
+ sampleFileBUENO("en_US.blogs.txt", .01)
+ sampleFileBUENO("en_US.news.txt", .01)
+ sampleFileBUENO("en_US.twitter.txt", .01)
+
+
+```
+
+
+
+
+```{r}
+corpus.source<-DirSource("./clean_data/")
+corpus.source
+corpus<-VCorpus(corpus.source, readerControl = list(reader=readPlain,language = "en"))
+summary(corpus)
+
+
+```
+
+
+```{r}
+
+ corpus <- tm_map(corpus, removeNumbers)
+ corpus <- tm_map(corpus, removePunctuation)
+ corpus <- tm_map(corpus , stripWhitespace)
+# corpus <- tm_map(corpus, tolower)
+# corpus <- tm_map(corpus, removeWords, stopwords("english")) # quitar
+```
+
+
+
+```{r}
+#dtm <- DocumentTermMatrix(corpus)
+#inspect(dtm)
+```
+
+
+
+```{r}
+
+#Weka no funciona muy bien paralelizado
+#BigramTokenizer <- function(x) NGramTokenizer(x, Weka_control(min = 1, max = 1))
+#tdm <- TermDocumentMatrix(corpus, control = list(tokenize = BigramTokenizer))
+```
+
+
+
+Tokenizin all ngrams in one iteration
+```{r}
+MultigramTokenizer<-  function(x) {
+    words<-words(x)
+    bigrams<-ngrams(words(x),2)
+    trigrams<-ngrams(words(x),3)
+
+    words<-unlist(lapply(words, paste, collapse = " "), use.names = FALSE)  
+    bigrams<-unlist(lapply(bigrams, paste, collapse = " "), use.names = FALSE)  
+    trigrams<-unlist(lapply(trigrams, paste, collapse = " "), use.names = FALSE)  
+
+    
+    c(words,bigrams, trigrams)
+    
+}
+
+
+```
+
+Tokenization (all ngrams)
+```{r}
+
+
+tmd<-TermDocumentMatrix(corpus, control=list(tokenize=MultigramTokenizer))
+
+tmd
+```
+
+
+Training data construction
+
+
+```{r}
+#totalTMD<-rbind(unigramMatrix,bigramMatrix, trigramMatrix)
+#attributes(totalTMD) <- attributes(bigramMatrix)
+total.frequencies<-apply(as.matrix(tmd), FUN=sum, MARGIN=1) # Add for all documents
+# El term es el índice
+
+get.gram.head <- function (s)
+{
+  paste(s[1:length(s)-1],collapse = " ")
+}
+
+
+get.gram.tail <- function (s)
+{
+  s[length(s)]
+}
+
+
+test <- data.frame(
+  term=names(total.frequencies),
+  freq=total.frequencies,
+  gram.size=sapply(strsplit(names(total.frequencies)," "), FUN =length),
+  gram.head=sapply(strsplit(names(total.frequencies)," "), FUN =get.gram.head),
+  gram.tail=sapply(strsplit(names(total.frequencies)," "), FUN =get.gram.tail)
+)
+
+test
+
+```
+
+
+
+
+- tm::c.VCorpus		Combine Corpora, Documents, Term-Document Matrices, and Term Frequency Vectors
+- tm::findAssocs		Find Associations in a Term-Document Matrix
+- tm::findMostFreqTerms		Find Most Frequent Terms
+- tm::inspect		Inspect Objects
+- tm::TermDocumentMatrix		Term-Document Matrix
+- tm::plot.TermDocumentMatrix		Visualize a Term-Document Matrix
+- tm::tm_term_score		Compute Score for Matching Terms
+- tm::plot.TermDocumentMatrix		Visualize a Term-Document Matrix
+
+
