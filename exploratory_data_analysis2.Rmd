@@ -43,11 +43,10 @@ knitr::opts_chunk$set(echo=FALSE, warning=FALSE, message=FALSE, fig.width=6, fig
 Load data and save in RDS format
 
 ```{r, eval=FALSE, include=FALSE}
-sampleFile<-function(myfilename, sample.proportion)
+sampleFileBUENO<-function(myfilename, sample.proportion)
 {
   path<-paste0("./raw_data/final/en_US/",myfilename)
   out.path<-paste0("./clean_data/",strsplit(myfilename,split = ".txt")[[1]],".sampled.txt")
-print(out.path)  
   raw.data = readLines(path,warn = FALSE,skipNul = TRUE);
   sample<-1==rbinom(n=length(raw.data), p=sample.proportion,size=1)
   data<-raw.data[sample]
@@ -56,9 +55,21 @@ print(out.path)
   
 }
 
- sampleFile("en_US.blogs.txt", .0001)
- sampleFile("en_US.news.txt", .0001)
- sampleFile("en_US.twitter.txt", .0001)
+
+sampleFile<-function(myfilename, sample.no.se.usa)
+{
+  path<-paste0("./raw_data/final/en_US/",myfilename)
+  out.path<-paste0("./clean_data/",strsplit(myfilename,split = ".txt")[[1]],".sampled.txt")
+  raw.data = readLines(path,warn = FALSE,skipNul = TRUE,n = 3);
+  # saveRDS(object = data, file = out.path)
+  writeLines(raw.data,con=out.path)
+  
+}
+
+
+ sampleFile("en_US.blogs.txt", .01)
+ sampleFile("en_US.news.txt", .01)
+ sampleFile("en_US.twitter.txt", .01)
 
 
 ```
@@ -75,6 +86,7 @@ summary(corpus)
 
 ```
 
+
 ```{r}
 
  corpus <- tm_map(corpus, removeNumbers)
@@ -82,26 +94,6 @@ summary(corpus)
  corpus <- tm_map(corpus , stripWhitespace)
 # corpus <- tm_map(corpus, tolower)
 # corpus <- tm_map(corpus, removeWords, stopwords("english")) # quitar
-```
-
-
-
-
-```{r}
-
-tdm <- TermDocumentMatrix(corpus)
-#inspect(tdm)
-
-
-```
-
-
-
-```{r}
-#install.packages("Rgraphviz")
-
-
-plot(tdm) 
 ```
 
 
@@ -120,11 +112,111 @@ plot(tdm)
 #tdm <- TermDocumentMatrix(corpus, control = list(tokenize = BigramTokenizer))
 ```
 
+Tokenizing and ngram frequency calculation
 
 ```{r}
-getTokenizers()
-scan_tokenizer(corpus)
 
+#Tokenizar trigramas
+
+# TODO: arreglar, no saca los overlapping
+
+#gregexpr(pattern = "[[:alpha:]]+[[:blank:]][[:alpha:]]+", "the fox jumps and fly")
+
+unigramMatrix <- TermDocumentMatrix(corpus)
+
+bigramtokenizer<-Regexp_Tokenizer("[[:alpha:]]+[[:blank:]][[:alpha:]]+")
+bigramMatrix <- TermDocumentMatrix(corpus, control=list(tokenize=bigramtokenizer))
+
+trigramtokenizer<-Regexp_Tokenizer("[[:alpha:]]+[[:blank:]][[:alpha:]]+[[:blank:]][[:alpha:]]+")
+trigramMatrix <- TermDocumentMatrix(corpus, control=list(tokenize=trigramtokenizer))
+
+
+```
+
+
+Tokenizin all ngrams in one iteration
+```{r}
+
+
+as.vector(gregexpr(pattern="[[:blank:]]",text = "uno dos tres")[[1]])
+
+s<-"uno dos tres"
+
+
+gregexpr(text = s,pattern = " ",fixed = TRUE)
+
+findTokens<-function(s)
+{
+  max.ngram<-3
+  spaces <- as.vector(gregexpr(text = s,pattern = " ",fixed = TRUE)[[1]])
+  spaces<-c(1,spaces,nchar(s) ) #add start and end
+  print(spaces)
+  from<-numeric(length(spaces)*max.ngram)
+  to<-numeric(length(spaces)*max.ngram)
+
+  breakpoints<-array(0,dim = c(length(spaces),2)) # add dim names
+  words<-character(length(spaces))
+  
+  for (i in 1:length(spaces))
+  {
+    breakpoints[i,1] <-spaces[i]
+    breakpoints[i,2] <-spaces[i+1]
+  }
+
+  print(breakpoints)
+  
+  for (i in 1:length(breakpoints))
+  {
+    print("Bucle")
+    if (!is.na(breakpoints[i,2]))
+    {
+      print("Entrando")
+      words[i]<-substr(s, breakpoints[i,1],breakpoints[i,2])
+    }
+    print(words)
+  }
+
+  words
+     
+}
+findTokens(s)
+
+sp <- Span_Tokenizer(f = findTokens)
+test<-sp(s)
+test
+
+
+```
+
+
+Training data construction
+
+
+```{r}
+totalTMD<-rbind(unigramMatrix,bigramMatrix, trigramMatrix)
+attributes(totalTMD) <- attributes(bigramMatrix)
+total.frequencies<-apply(as.matrix(totalTMD), FUN=sum, MARGIN=1)
+# El term es el índice
+
+get.gram.head <- function (s)
+{
+  paste(s[1:length(s)-1],collapse = " ")
+}
+
+
+get.gram.tail <- function (s)
+{
+  s[length(s)]
+}
+
+
+test <- data.frame(
+  term=names(total.frequencies),
+  freq=total.frequencies,
+  gram.size=sapply(strsplit(names(total.frequencies)," "), FUN =length),
+  gram.head=sapply(strsplit(names(total.frequencies)," "), FUN =get.gram.head),
+  gram.tail=sapply(strsplit(names(total.frequencies)," "), FUN =get.gram.tail)
+)
 
 ```
 
