@@ -1,0 +1,180 @@
+---
+title: "Data preparation with quanteda"
+output: html_notebook
+---
+
+
+
+Idea general para la predicción:
+
+Ante una frase: 
+
+1.	Sacar una lista de muchas palabras posibles
+2.	Añadir esas palabras posibles al ngrama incompleto
+3.	buscar la probabilidad de cada uno 
+4.	devolver el mas probable.
+
+
+Para la busqueda de posibles candidatos
+- busquedas parciales en ngramas con todas las palabras del  ngrama dado
+- busqueda de palabras cercanas sin stop words (palabras de “contexto”) 
+- Añadir siempre los stopwords a la lista de candidatos 
+ 
+Usar quanteda
+
+```{r}
+library("tm")
+library("quanteda")
+```
+
+
+Preparation
+```{r}
+
+  # Read the list of offensive words 
+  offensive.words<-readLines("raw_data/Terms-to-Block.csv")
+  offensive.words<-offensive.words[5:length(offensive.words)]
+  offensive.words<-gsub("[\"]","",offensive.words)
+  offensive.words<-gsub("[,]","",offensive.words)  
+
+
+```
+
+
+Corpus load
+```{r}
+corpus.source<-DirSource("./clean_data/")
+
+
+tmcorpus <- tm::VCorpus(corpus.source, readerControl = list(reader=readPlain,language = "en"))
+
+
+tmcorpus <- tm_map(tmcorpus, content_transformer(char_tolower))
+# tmcorpus <- tm_map(tmcorpus, removeWords, stopwords("english")) # quitar
+#tmcorpus <- tm_map(tmcorpus, removePunctuation)
+tmcorpus <- tm_map(tmcorpus, removeWords, offensive.words)
+tmcorpus <- tm_map(tmcorpus, removeNumbers)
+
+tmcorpus <- tm_map(tmcorpus ,stripWhitespace)
+corpus<-corpus(tmcorpus)
+```
+
+summary:
+
+```{r}
+summary(corpus)
+```
+
+
+```{r}
+
+sentences<-tokens(corpus, what="sentence")
+
+```
+
+summary
+```{r}
+summary(sentences)
+```
+
+
+
+```{r}
+
+words<-tokens(corpus, remove_punct = TRUE, remove_url = TRUE)
+digrams<-tokens_ngrams(words, n = 2L)
+summary(digrams)
+
+digrams
+
+dfm2<-dfm(digrams,groups = docnames(corpus))
+
+
+dfm_select(dfm2, "course_it") #prueba de busqueda
+
+
+tetragrams<-tokens_ngrams(words, n = 4L)
+```
+
+```{r}
+# quanteda::stopwords()
+
+```
+
+usar dfm_trim para quitar bajas frecuencias
+Usar dfm_select para buscar rápido frecuencias
+
+¿dfm_group para agrupar todos los documentos en uno?
+
+
+
+¿fmc para contexto?
+
+
+
+
+Corpus contecto frases
+```{r}
+
+tmcorpus <- tm::VCorpus(corpus.source, readerControl = list(reader=readPlain,language = "en"))
+
+tmcorpus <- tm_map(tmcorpus, removeNumbers)
+#tmcorpus <- tm_map(tmcorpus, removePunctuation)
+tmcorpus <- tm_map(tmcorpus, content_transformer(tolower))
+tmcorpus <- tm_map(tmcorpus, removeWords, tm::stopwords("english"))
+tmcorpus <- tm_map(tmcorpus, removeWords, offensive.words)
+tmcorpus <- tm_map(tmcorpus ,stripWhitespace)
+context.corpus<-corpus(tmcorpus)
+
+tm::stopwords("english")
+```
+
+
+
+
+```{r}
+
+rm(digrams)
+
+#dfm(sentences)
+#sentences<-tokens(context.corpus, what="sentence")
+
+```
+
+
+
+
+
+Hacer un método de train con todos los parámetros y que retorne el objeto "aprendido"
+
+
+Obtencion del contexto:
+
+Usar n-gramas, cogiendo la primera palabra del ngrama como key y el resto como valor, (o la última para el contexto anterior)
+
+Método: 
+Para cada n-grama "anterior" (4-gramas)
+sacar la última palabra
+Si es stopword o simbolo ignorar 
+
+Para cada palabra, añadir las PALABRASpalabras anteriores  bajo la kery de la última
+
+Lo mismo para n-gramas "posteriores" (2-gramas)  
+
+Añadir: 
+  añadir sin repetidos
+  no se añaden stop word
+
+(usar librería hashmap)
+
+
+¿No procesarolo por ngramas sino directamente el fichero? 
+
+¿buscar simplemente los ngramas donde aparece la palabra? ¿diccionarios?
+
+```{r}
+
+
+
+```
+
