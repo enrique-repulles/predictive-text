@@ -57,6 +57,8 @@ tmcorpus <- tm_map(tmcorpus, removeNumbers)
 
 tmcorpus <- tm_map(tmcorpus ,stripWhitespace)
 corpus<-corpus(tmcorpus)
+
+
 ```
 
 summary:
@@ -66,16 +68,6 @@ summary(corpus)
 ```
 
 
-```{r}
-
-sentences<-tokens(corpus, what="sentence")
-
-```
-
-summary
-```{r}
-summary(sentences)
-```
 
 
 
@@ -85,7 +77,7 @@ words<-tokens(corpus, remove_punct = TRUE, remove_url = TRUE)
 digrams<-tokens_ngrams(words, n = 2L)
 summary(digrams)
 
-digrams
+
 
 dfm2<-dfm(digrams,groups = docnames(corpus))
 
@@ -96,10 +88,6 @@ dfm_select(dfm2, "course_it") #prueba de busqueda
 tetragrams<-tokens_ngrams(words, n = 4L)
 ```
 
-```{r}
-# quanteda::stopwords()
-
-```
 
 usar dfm_trim para quitar bajas frecuencias
 Usar dfm_select para buscar rápido frecuencias
@@ -113,21 +101,35 @@ Usar dfm_select para buscar rápido frecuencias
 
 
 
-Corpus contecto frases
+Corpus contexo frases
 ```{r}
 
 tmcorpus <- tm::VCorpus(corpus.source, readerControl = list(reader=readPlain,language = "en"))
 
 tmcorpus <- tm_map(tmcorpus, removeNumbers)
-#tmcorpus <- tm_map(tmcorpus, removePunctuation)
+tmcorpus <- tm_map(tmcorpus, removePunctuation)
 tmcorpus <- tm_map(tmcorpus, content_transformer(tolower))
 tmcorpus <- tm_map(tmcorpus, removeWords, tm::stopwords("english"))
 tmcorpus <- tm_map(tmcorpus, removeWords, offensive.words)
 tmcorpus <- tm_map(tmcorpus ,stripWhitespace)
 context.corpus<-corpus(tmcorpus)
 
-tm::stopwords("english")
+
+context.words<-tokens(context.corpus, remove_punct = TRUE, remove_url = TRUE)
+most.frequent.words<-topfeatures(dfm(context.words),n = 100)
+
+print(most.frequent.words)
+
+# Remove these frequent words from the context corpus
+
+
+tmcorpus <- tm_map(tmcorpus, removeWords, most.frequent.words)
+context.corpus<-corpus(tmcorpus)
+
 ```
+
+
+
 
 
 
@@ -138,6 +140,27 @@ rm(digrams)
 
 #dfm(sentences)
 #sentences<-tokens(context.corpus, what="sentence")
+
+```
+
+
+
+# Pruebas analisis de contexto 
+
+```{r}
+
+#contextWords<-tokens(context.corpus , remove_punct = TRUE, remove_url = TRUE)
+
+contextWords <- function (word)
+{
+  context.before<-kwic(context.corpus, pattern = word,window = 2)
+  print(context.before)
+  unique(unlist(strsplit(context.before$pre," ")))  
+}
+
+
+contextWords("time")
+
 
 ```
 
@@ -165,16 +188,15 @@ Añadir:
   añadir sin repetidos
   no se añaden stop word
 
-(usar librería hashmap)
+
+En el corpus de "contexto", quitar las palabras más frecuentes del corpus, y añadirlas a parte como candidatos
+
+
+(¿usar librería hashmap?)
+
 
 
 ¿No procesarolo por ngramas sino directamente el fichero? 
 
 ¿buscar simplemente los ngramas donde aparece la palabra? ¿diccionarios?
-
-```{r}
-
-
-
-```
 
