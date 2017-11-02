@@ -28,66 +28,6 @@ library("quanteda")
 ```
 
 
-Preparation
-```{r}
-
-  # Read the list of offensive words 
-  offensive.words<-readLines("raw_data/Terms-to-Block.csv")
-  offensive.words<-offensive.words[5:length(offensive.words)]
-  offensive.words<-gsub("[\"]","",offensive.words)
-  offensive.words<-gsub("[,]","",offensive.words)  
-
-
-```
-
-
-Corpus load
-```{r}
-corpus.source<-DirSource("./clean_data/")
-
-
-tmcorpus <- tm::VCorpus(corpus.source, readerControl = list(reader=readPlain,language = "en"))
-
-
-tmcorpus <- tm_map(tmcorpus, content_transformer(char_tolower))
-# tmcorpus <- tm_map(tmcorpus, removeWords, stopwords("english")) # quitar
-#tmcorpus <- tm_map(tmcorpus, removePunctuation)
-tmcorpus <- tm_map(tmcorpus, removeWords, offensive.words)
-tmcorpus <- tm_map(tmcorpus, removeNumbers)
-
-tmcorpus <- tm_map(tmcorpus ,stripWhitespace)
-corpus<-corpus(tmcorpus)
-
-
-```
-
-summary:
-
-```{r}
-summary(corpus)
-```
-
-
-
-
-
-```{r}
-
-words<-tokens(corpus, remove_punct = TRUE, remove_url = TRUE)
-digrams<-tokens_ngrams(words, n = 2L)
-summary(digrams)
-
-
-
-dfm2<-dfm(digrams,groups = docnames(corpus))
-
-
-dfm_select(dfm2, "course_it") #prueba de busqueda
-
-
-tetragrams<-tokens_ngrams(words, n = 4L)
-```
-
 
 usar dfm_trim para quitar bajas frecuencias
 Usar dfm_select para buscar rápido frecuencias
@@ -95,53 +35,7 @@ Usar dfm_select para buscar rápido frecuencias
 ¿dfm_group para agrupar todos los documentos en uno?
 
 
-
 ¿fmc para contexto?
-
-
-
-
-Corpus contexo frases
-```{r}
-
-tmcorpus <- tm::VCorpus(corpus.source, readerControl = list(reader=readPlain,language = "en"))
-
-tmcorpus <- tm_map(tmcorpus, removeNumbers)
-tmcorpus <- tm_map(tmcorpus, removePunctuation)
-tmcorpus <- tm_map(tmcorpus, content_transformer(tolower))
-tmcorpus <- tm_map(tmcorpus, removeWords, tm::stopwords("english"))
-tmcorpus <- tm_map(tmcorpus, removeWords, offensive.words)
-tmcorpus <- tm_map(tmcorpus ,stripWhitespace)
-context.corpus<-corpus(tmcorpus)
-
-
-context.words<-tokens(context.corpus, remove_punct = TRUE, remove_url = TRUE)
-most.frequent.words<-topfeatures(dfm(context.words),n = 100)
-
-print(most.frequent.words)
-
-# Remove these frequent words from the context corpus
-
-
-tmcorpus <- tm_map(tmcorpus, removeWords, most.frequent.words)
-context.corpus<-corpus(tmcorpus)
-
-```
-
-
-
-
-
-
-
-```{r}
-
-rm(digrams)
-
-#dfm(sentences)
-#sentences<-tokens(context.corpus, what="sentence")
-
-```
 
 
 
@@ -151,15 +45,132 @@ rm(digrams)
 
 #contextWords<-tokens(context.corpus , remove_punct = TRUE, remove_url = TRUE)
 
-contextWords <- function (word)
+contextWords <- function (corpus,word)
 {
-  context.before<-kwic(context.corpus, pattern = word,window = 2)
-  print(context.before)
-  unique(unlist(strsplit(context.before$pre," ")))  
+  context.before<-kwic(corpus, pattern = word,window = 2)
+  # quitar las palabras frequentes, y mostrar sólo las 100 mas frecuentes de las que queden
+  unique(unlist(strsplit(context.before$post," ")))  
 }
 
 
-contextWords("time")
+```
+
+
+#  Refactor funcion de Training
+
+```{r}
+
+training <- function (parametros="")
+{
+  
+  # Preparation
+  # Read the list of offensive words 
+  offensive.words<-readLines("raw_data/Terms-to-Block.csv")
+  offensive.words<-offensive.words[5:length(offensive.words)]
+  offensive.words<-gsub("[\"]","",offensive.words)
+  offensive.words<-gsub("[,]","",offensive.words)  
+
+
+  # Corpus for frequency information
+  corpus.source<-DirSource("./clean_data/")
+  tmcorpus1 <- tm::VCorpus(corpus.source, readerControl = list(reader=readPlain,language = "en"))
+  tmcorpus1 <- tm_map(tmcorpus1, content_transformer(char_tolower))
+  # tmcorpus <- tm_map(tmcorpus, removeWords, stopwords("english")) # quitar
+  #tmcorpus <- tm_map(tmcorpus, removePunctuation)
+  tmcorpus1 <- tm_map(tmcorpus1, removeWords, offensive.words)
+  tmcorpus1 <- tm_map(tmcorpus1, removeNumbers)
+
+  tmcorpus1 <- tm_map(tmcorpus1 ,stripWhitespace)
+  frequency.corpus<-corpus(tmcorpus1)
+  
+  # Ngrams frequency
+  words<-tokens(frequency.corpus, remove_punct = TRUE, remove_url = TRUE)
+  digrams<-tokens_ngrams(words, n = 2L)
+  trigrams<-tokens_ngrams(words, n = 3L)
+  tetragrams<-tokens_ngrams(words, n = 4L)
+  
+  # Corpus for context information
+  
+  tmcorpus2 <- tm::VCorpus(corpus.source, readerControl = list(reader=readPlain,language = "en"))
+  tmcorpus2 <- tm_map(tmcorpus2, removeNumbers)
+  tmcorpus2 <- tm_map(tmcorpus2, removePunctuation)
+  tmcorpus2 <- tm_map(tmcorpus2, content_transformer(tolower))
+  tmcorpus2 <- tm_map(tmcorpus2, removeWords, tm::stopwords("english"))
+  tmcorpus2 <- tm_map(tmcorpus2, removeWords, offensive.words)
+  tmcorpus2 <- tm_map(tmcorpus2, stripWhitespace)
+  context.corpus<-corpus(tmcorpus2)
+  
+  context.words<-tokens(context.corpus, remove_punct = TRUE, remove_url = TRUE)
+  most.frequent.words<-topfeatures(dfm(context.words),n = 100)
+
+  #tmcorpus <- tm_map(tmcorpus, removeWords, most.frequent.words)
+  #context.corpus<-corpus(tmcorpus)
+  
+  # Organize result object 
+  
+  list (
+    words = words,
+    digrams = digrams ,
+    trigrams =  trigrams,
+    tetragrams =  tetragrams,
+    stopwords =  tm::stopwords("english"),
+    most.frequent.words = names(most.frequent.words),
+    context.corpus = context.corpus
+    )
+
+}
+
+```
+
+
+
+Test de la funcion 
+```{r}
+
+fit <- training()
+#str(fit)
+
+
+
+```
+
+
+
+```{r}
+
+
+predict <- function (train.data, query) {
+
+  
+  MAX_WORDS=3
+
+  clean.query<-tolower(trimws(stripWhitespace(removePunctuation(removeNumbers(query)))))
+  query.words<-unlist(strsplit (clean.query," "))
+  query.length<-length(query.words)
+  query.words<-query.words[max(query.length-MAX_WORDS+1,1):query.length]
+
+  # Buscar candidatos  
+  context.words <- unlist(sapply(X = query.words, FUN = function (x) contextWords(fit$context.corpus,x)))  
+   
+  candidates<-unique(c(context.words, train.data$most.frequent.words, train.data$stopwords))
+  
+  # Construir candidatos
+  
+  candidates <- paste(paste(query.words, collapse = "_"), candidates, sep="_")
+
+  
+  # TODO solo digrams de momentos
+  
+  
+  # Buscar la probabilidad de cada uno 
+  
+  # Construir la salida: palabra mas frecuente y mejores candidatos
+  
+  candidates
+}
+
+
+predict(fit,"a pack of")
 
 
 ```
@@ -167,8 +178,6 @@ contextWords("time")
 
 
 
-
-Hacer un método de train con todos los parámetros y que retorne el objeto "aprendido"
 
 
 Obtencion del contexto:
@@ -180,7 +189,7 @@ Para cada n-grama "anterior" (4-gramas)
 sacar la última palabra
 Si es stopword o simbolo ignorar 
 
-Para cada palabra, añadir las PALABRASpalabras anteriores  bajo la kery de la última
+Para cada palabra, añadir las palabras anteriores  bajo la kery de la última
 
 Lo mismo para n-gramas "posteriores" (2-gramas)  
 
@@ -199,4 +208,8 @@ En el corpus de "contexto", quitar las palabras más frecuentes del corpus, y a�
 ¿No procesarolo por ngramas sino directamente el fichero? 
 
 ¿buscar simplemente los ngramas donde aparece la palabra? ¿diccionarios?
+
+# TODO: 
+Que al guardar los objetos de digramas, ngramas etc los guarde ya con documentos unificados
+Añadir al training la búsqueda de los parámetros de backoff
 
