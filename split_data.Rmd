@@ -1,0 +1,71 @@
+---
+title: "split data"
+output: html_notebook
+---
+
+
+
+Split the data in train and test sets
+
+
+# Preparation
+
+```{r}
+
+stress.proportion<-.01 #(maxim proportion of the total data without hanging the computer)
+training.proportion<-.6
+validation.proportion<-.4
+testing.proportion<-.4
+
+training.threshold <- stress.proportion * training.proportion
+validation.threshold <- training.threshold + stress.proportion * validation.proportion
+testing.threshold <- validation.threshold + stress.proportion * testing.proportion
+
+path<-"./raw_data/final/en_US/"
+
+dir.training <- "./clean_data/training/"
+dir.validation <- "./clean_data/validation/"
+dir.testing <- "./clean_data/testing/"
+
+dir.create(dir.training,recursive = TRUE,showWarnings = FALSE)
+dir.create(dir.validation,recursive = TRUE,showWarnings = FALSE)
+dir.create(dir.testing,recursive = TRUE,showWarnings = FALSE)
+```
+
+
+# Function for sampling
+
+```{r, eval=FALSE, include=FALSE}
+
+
+sampleFile<-function(myfilename)
+{
+  raw.data = readLines(paste0(path,myfilename),warn = FALSE,skipNul = TRUE);
+  
+  sampling<-runif(n = length(raw.data))
+  
+  training <- raw.data[sampling <= training.threshold]
+  validation <- raw.data[sampling > training.threshold & sampling <= validation.threshold]
+  testing <- raw.data[sampling > validation.threshold & sampling <= testing.threshold]
+  
+  writeLines(training,paste0("",myfilename))
+  writeLines(validation,paste0("./clean_data/validation/",myfilename))
+  writeLines(testing,paste0("./clean_data/testing/",myfilename))
+  
+
+}
+
+```
+
+
+# Execution
+
+```{r, eval=FALSE, include=FALSE}
+
+
+
+files <- c("en_US.blogs.txt","en_US.news.txt","en_US.twitter.txt")
+sapply(X=files, FUN=sampleFile)
+
+```
+

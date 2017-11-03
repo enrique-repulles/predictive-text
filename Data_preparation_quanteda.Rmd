@@ -53,7 +53,7 @@ Usar dfm_select para buscar rápido frecuencias
 
 
   # Corpus for frequency information
-  corpus.source<-DirSource("./clean_data/")
+  corpus.source<-DirSource("./clean_data/training/")
   tmcorpus1 <- tm::VCorpus(corpus.source, readerControl = list(reader=readPlain,language = "en"))
   tmcorpus1 <- tm_map(tmcorpus1, content_transformer(char_tolower))
   # tmcorpus <- tm_map(tmcorpus, removeWords, stopwords("english")) # quitar
@@ -189,9 +189,8 @@ lastn<-function (str, n, sep=" ")
 ```{r}
 
 
-predict <- function (query) {
 
-######
+predict <- function (query) {
 
 MAX_WORDS=3
 
@@ -244,7 +243,7 @@ candidates[order(candidates$prob,decreasing = TRUE)[1:10],c("full.sentence","pro
 
 }
 
-predict("i will appreciate your")
+predict("tomorrow I will")
 
 
 ```
