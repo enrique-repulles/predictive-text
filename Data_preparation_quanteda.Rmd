@@ -91,13 +91,16 @@ Usar dfm_select para buscar rápido frecuencias
   
   context.words<-tokens(context.corpus, remove_punct = TRUE, remove_url = TRUE)
   most.frequent.words<-topfeatures(dfm(context.words),n = 100)
-
+  context.bigrams<-dfm(tokens_ngrams(context.words, n = 2L))
+  
+  
+  
+  
   #tmcorpus <- tm_map(tmcorpus, removeWords, most.frequent.words)
   #context.corpus<-corpus(tmcorpus)
   
   # Organize result object 
 
-  
   
   
   
@@ -108,7 +111,8 @@ Usar dfm_select para buscar rápido frecuencias
     tetragram.freq =  docfreq(tetragram.freq, scheme="count" )  ,
     stopwords =  tm::stopwords("english"),
     most.frequent.words = names(most.frequent.words),
-    context.corpus = context.corpus
+    bigram.context = featnames(context.bigrams)
+    
     )
 
   
@@ -118,7 +122,7 @@ Usar dfm_select para buscar rápido frecuencias
 ```{r}
 #cleanup
   rm (word.freq,  bigram.freq,trigram.freq,tetragram.freq,most.frequent.words,context.corpus, tmcorpus1, tmcorpus2)
-  rm (bigrams, trigrams, tetragrams)
+  rm (bigrams, trigrams, tetragrams, context.bigrams, context.words, words)
 
 
 ```
@@ -164,10 +168,10 @@ ngram.probability <- function (train.data, ngram)
 
 Last n words of a string
 ```{r}
-lastn<-function (str, n)
+lastn<-function (str, n, sep=" ")
 {
   
-  v <- unlist(strsplit(str, " "))
+  v <- unlist(strsplit(str, sep))
   from <- max(1,length(v)+1-n)
   to <- length(v)
   paste(v[from:to], collapse = "_")
@@ -183,7 +187,9 @@ lastn<-function (str, n)
 
 
 ```{r}
-query <- "I pass"
+
+
+predict <- function (query) {
 
 ######
 
@@ -195,13 +201,12 @@ query.words<-unlist(strsplit (clean.query," "))
 
 # Buscar candidatos de cada una de las palabras de la query
 
-context.words.post <- unlist(sapply(X = query.words, FUN = function (x) {strsplit(kwic(train.data$context.corpus, pattern = x,window = 2)$post," ")})) 
+context<-train.data$bigram.context
+context.words<-unlist(sapply(X=query.words, FUN=function (x) context[grep(x=context,pattern=paste0("^",x,"_"))]))
+context.words<-sapply(X=context.words, FUN = function (x) lastn (x,1, sep="_"))
 
-context.words.pre <- unlist(sapply(X = query.words, FUN = function (x) {strsplit(kwic(train.data$context.corpus, pattern = x,window = 1)$pre," ")})) 
 
-
-
-candidates<-unique(c(context.words.post,context.words.pre, train.data$most.frequent.words, train.data$stopwords))
+candidates<-unique(c(context.words, train.data$most.frequent.words, train.data$stopwords))
 candidates<-data.frame(word=candidates)
 candidates$full.sentence<-paste(clean.query, candidates$word, sep = " ")
 
@@ -218,14 +223,16 @@ candidates$bigram.freq[is.na(candidates$bigram.freq)]<-0
 candidates$trigram.freq[is.na(candidates$trigram.freq)]<-0
 candidates$tetragram.freq[is.na(candidates$tetragram.freq)]<-0
 
-
-
 candidates$bigram.prob<-(1+candidates$bigram.freq)/(1+sum(train.data$bigram.freq))
 candidates$trigram.prob<-(1+candidates$trigram.freq)/(1+sum(train.data$trigram.freq))
 candidates$tetragram.prob<-(1+candidates$tetragram.freq)/(1+sum(train.data$tetragram.freq))
 
+#WEIGHTS
+w1 <- .1
+w2 <- .3
+w3 <- .6
 
-candidates$prob<-(candidates$bigram.prob+candidates$trigram.prob+candidates$tetragram.prob)/3
+candidates$prob<-(w1*candidates$bigram.prob+w2*candidates$trigram.prob+w3*candidates$tetragram.prob)/3
 
 
 ######
@@ -235,6 +242,10 @@ candidates$prob<-(candidates$bigram.prob+candidates$trigram.prob+candidates$tetr
 
 candidates[order(candidates$prob,decreasing = TRUE)[1:10],c("full.sentence","prob")]
 
+}
+
+predict("i will appreciate your")
+
 
 ```
 
@@ -243,44 +254,18 @@ candidates[order(candidates$prob,decreasing = TRUE)[1:10],c("full.sentence","pro
 
 
 
-Obtencion del contexto:
 
-Usar n-gramas, cogiendo la primera palabra del ngrama como key y el resto como valor, (o la última para el contexto anterior)
-
-Método: 
-Para cada n-grama "anterior" (4-gramas)
-sacar la última palabra
-Si es stopword o simbolo ignorar 
-
-
-
-
-Lo mismo para n-gramas "posteriores" (2-gramas)  
-
-Añadir: 
-  añadir sin repetidos
-  no se añaden stop word
-
-
-En el corpus de "contexto", quitar las palabras más frecuentes del corpus, y añadirlas a parte como candidatos
-
-
-(¿usar librería hashmap?)
-
-
-
-¿No generar el contexto  por ngramas sino directamente el fichero? 
-
-¿buscar simplemente los ngramas donde aparece la palabra? ¿diccionarios?
 
 # TODO: 
-Que al guardar los objetos de digramas, ngramas etc los guarde ya con documentos unificados
-Añadir al training la búsqueda de los parámetros de backoff
 
 
-¿Hacer corpus_reshape(corp, to = "sentences") para contexto?
-No guardar frecuencias por documentos, sino agrupar las frecuencias de cada token
+- Añadir al training la búsqueda de los parámetros de backoff
+- ¿Hacer corpus_reshape(corp, to = "sentences") para contexto?
+- No guardar frecuencias por documentos, sino agrupar las frecuencias de cada token
+- Hacer clustering para palabras asociadas
+- Quitar de los candidatos las palabras que ya están en la frase
+- Calcular eficiencia, perplexity...
+- Marcar los finales de frase con EOS para no contraminar contexto de una frase con el siguiente ( y quitar de los candidatos)
+- en vez de clean_data, crear subcarpetas de training y test
 
 
-Hacer clustering para palabras asociadas
-Quitar de los candidatos las palabras que ya están en la frase
