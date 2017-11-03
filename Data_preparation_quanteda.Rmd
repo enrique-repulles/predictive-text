@@ -83,11 +83,20 @@ training <- function (parametros="")
   tmcorpus1 <- tm_map(tmcorpus1 ,stripWhitespace)
   frequency.corpus<-corpus(tmcorpus1)
   
+
   # Ngrams frequency
   words<-tokens(frequency.corpus, remove_punct = TRUE, remove_url = TRUE)
-  digrams<-tokens_ngrams(words, n = 2L)
+  bigrams<-tokens_ngrams(words, n = 2L)
   trigrams<-tokens_ngrams(words, n = 3L)
   tetragrams<-tokens_ngrams(words, n = 4L)
+  
+  word.freq<-dfm(words)
+  bigram.freq<-dfm(bigrams)
+  trigram.freq<-dfm(trigrams)
+  tetragram.freq<-dfm(tetragrams)
+  
+  
+  
   
   # Corpus for context information
   
@@ -109,10 +118,10 @@ training <- function (parametros="")
   # Organize result object 
   
   list (
-    words = words,
-    digrams = digrams ,
-    trigrams =  trigrams,
-    tetragrams =  tetragrams,
+    word.freq = word.freq,
+    bigram.freq = bigram.freq,
+    trigram.freq =  trigram.freq,
+    tetragram.freq =  tetragram.freq,
     stopwords =  tm::stopwords("english"),
     most.frequent.words = names(most.frequent.words),
     context.corpus = context.corpus
@@ -131,12 +140,58 @@ fit <- training()
 #str(fit)
 
 
+fit$word.freq
+
+summary(fit$word.freq)
+
+sum(ntoken(fit$word.freq))
+
 
 ```
 
 
 
+ 
 ```{r}
+
+ngram.probability <- function (train.data, ngram)
+{
+  
+  print(ngram)
+  tokens<-unlist(strsplit(ngram, "_"))
+  # Look in bigrams
+  
+  bigram.pattern <- paste(tokens[1:min(2, length(tokens))], collapse = "_")
+  #print(bigram.pattern)
+  bigram.prob<-(1+sum(dfm_select(train.data$bigram.freq,bigram.pattern))) / (1+sum(ntoken(train.data$bigram.freq)))
+  #print(bigram.prob)
+  
+  trigram.pattern <- paste(tokens[1:min(3, length(tokens))], collapse = "_")
+  #print(trigram.pattern)
+  trigram.prob<-(1+sum(dfm_select(train.data$trigram.freq,trigram.pattern))) / (1+sum(ntoken(train.data$trigram.freq)))
+  #print(trigram.prob)
+  
+  tetragram.pattern <- paste(tokens[1:min(4, length(tokens))], collapse = "_") 
+  #print(tetragram.pattern)
+  tetragram.prob<-(1+sum(dfm_select(train.data$tetragram.freq,tetragram.pattern))) / (1+sum(ntoken(train.data$tetragram.freq)))
+  #print(tetragram.prob)
+  
+  max(bigram.prob,trigram.prob, tetragram.prob)
+}
+
+#test 
+ngram.probability(fit,"my_company")
+
+```
+
+
+
+
+```{r}
+
+
+
+
 
 
 predict <- function (train.data, query) {
@@ -159,18 +214,20 @@ predict <- function (train.data, query) {
   candidates <- paste(paste(query.words, collapse = "_"), candidates, sep="_")
 
   
-  # TODO solo digrams de momentos
-  
-  
   # Buscar la probabilidad de cada uno 
+  
+  prediction <- data.frame (candidate=candidates)
+  
+  prediction$prob<- sapply(candidates, FUN= function (x) ngram.probability(train.data, x))
+  
   
   # Construir la salida: palabra mas frecuente y mejores candidatos
   
-  candidates
+  prediction
 }
 
 
-predict(fit,"a pack of")
+predict(fit,"fff ggg")
 
 
 ```
@@ -213,3 +270,6 @@ En el corpus de "contexto", quitar las palabras más frecuentes del corpus, y a�
 Que al guardar los objetos de digramas, ngramas etc los guarde ya con documentos unificados
 Añadir al training la búsqueda de los parámetros de backoff
 
+
+¿Hacer corpus_reshape(corp, to = "sentences") para contexto?
+No guardar frecuencias por documentos, sino agrupar las frecuencias de cada token
