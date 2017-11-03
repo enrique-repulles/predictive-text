@@ -39,30 +39,11 @@ Usar dfm_select para buscar rápido frecuencias
 
 
 
-# Pruebas analisis de contexto 
+
+#  Training
 
 ```{r}
 
-#contextWords<-tokens(context.corpus , remove_punct = TRUE, remove_url = TRUE)
-
-contextWords <- function (corpus,word)
-{
-  context.before<-kwic(corpus, pattern = word,window = 2)
-  # quitar las palabras frequentes, y mostrar sólo las 100 mas frecuentes de las que queden
-  unique(unlist(strsplit(context.before$post," ")))  
-}
-
-
-```
-
-
-#  Refactor funcion de Training
-
-```{r}
-
-training <- function (parametros="")
-{
-  
   # Preparation
   # Read the list of offensive words 
   offensive.words<-readLines("raw_data/Terms-to-Block.csv")
@@ -95,8 +76,7 @@ training <- function (parametros="")
   trigram.freq<-dfm(trigrams)
   tetragram.freq<-dfm(tetragrams)
   
-  
-  
+
   
   # Corpus for context information
   
@@ -116,35 +96,29 @@ training <- function (parametros="")
   #context.corpus<-corpus(tmcorpus)
   
   # Organize result object 
+
   
-  list (
-    word.freq = word.freq,
-    bigram.freq = bigram.freq,
-    trigram.freq =  trigram.freq,
-    tetragram.freq =  tetragram.freq,
+  
+  
+  
+  train.data<-list (
+    word.freq = docfreq(word.freq, scheme="count" )  ,
+    bigram.freq = docfreq(bigram.freq, scheme="count" )  ,
+    trigram.freq =  docfreq(trigram.freq, scheme="count" )  ,
+    tetragram.freq =  docfreq(tetragram.freq, scheme="count" )  ,
     stopwords =  tm::stopwords("english"),
     most.frequent.words = names(most.frequent.words),
     context.corpus = context.corpus
     )
 
-}
+  
 
 ```
 
-
-
-Test de la funcion 
 ```{r}
-
-fit <- training()
-#str(fit)
-
-
-fit$word.freq
-
-summary(fit$word.freq)
-
-sum(ntoken(fit$word.freq))
+#cleanup
+  rm (word.freq,  bigram.freq,trigram.freq,tetragram.freq,most.frequent.words,context.corpus, tmcorpus1, tmcorpus2)
+  rm (bigrams, trigrams, tetragrams)
 
 
 ```
@@ -180,54 +154,86 @@ ngram.probability <- function (train.data, ngram)
 }
 
 #test 
-ngram.probability(fit,"my_company")
+#ngram.probability(training.data,"my_company")
 
 ```
 
 
 
+#auxiliar function 
+
+Last n words of a string
+```{r}
+lastn<-function (str, n)
+{
+  
+  v <- unlist(strsplit(str, " "))
+  from <- max(1,length(v)+1-n)
+  to <- length(v)
+  paste(v[from:to], collapse = "_")
+}
+# test
+# lastn("uno dos tres", 3)
+```
+
+
+
+# Prediction 
+
+
 
 ```{r}
+query <- "I pass"
+
+######
+
+MAX_WORDS=3
+
+clean.query<-tolower(trimws(stripWhitespace(removePunctuation(removeNumbers(query)))))
+query.words<-unlist(strsplit (clean.query," "))
+
+
+# Buscar candidatos de cada una de las palabras de la query
+
+context.words.post <- unlist(sapply(X = query.words, FUN = function (x) {strsplit(kwic(train.data$context.corpus, pattern = x,window = 2)$post," ")})) 
+
+context.words.pre <- unlist(sapply(X = query.words, FUN = function (x) {strsplit(kwic(train.data$context.corpus, pattern = x,window = 1)$pre," ")})) 
 
 
 
+candidates<-unique(c(context.words.post,context.words.pre, train.data$most.frequent.words, train.data$stopwords))
+candidates<-data.frame(word=candidates)
+candidates$full.sentence<-paste(clean.query, candidates$word, sep = " ")
+
+
+candidates$bigrams<-sapply(candidates$full.sentence, function (x) lastn (x,2))
+candidates$trigrams<-sapply(candidates$full.sentence, function (x) lastn (x,3))
+candidates$tetragrams<-sapply(candidates$full.sentence, function (x) lastn (x,4))
+
+candidates$bigram.freq<-train.data$bigram.freq[candidates$bigrams]
+candidates$trigram.freq<-train.data$trigram.freq[candidates$trigram]
+candidates$tetragram.freq<-train.data$tetragram.freq[candidates$tetragram]
+
+candidates$bigram.freq[is.na(candidates$bigram.freq)]<-0
+candidates$trigram.freq[is.na(candidates$trigram.freq)]<-0
+candidates$tetragram.freq[is.na(candidates$tetragram.freq)]<-0
 
 
 
-predict <- function (train.data, query) {
-
-  
-  MAX_WORDS=3
-
-  clean.query<-tolower(trimws(stripWhitespace(removePunctuation(removeNumbers(query)))))
-  query.words<-unlist(strsplit (clean.query," "))
-  query.length<-length(query.words)
-  query.words<-query.words[max(query.length-MAX_WORDS+1,1):query.length]
-
-  # Buscar candidatos  
-  context.words <- unlist(sapply(X = query.words, FUN = function (x) contextWords(fit$context.corpus,x)))  
-   
-  candidates<-unique(c(context.words, train.data$most.frequent.words, train.data$stopwords))
-  
-  # Construir candidatos
-  
-  candidates <- paste(paste(query.words, collapse = "_"), candidates, sep="_")
-
-  
-  # Buscar la probabilidad de cada uno 
-  
-  prediction <- data.frame (candidate=candidates)
-  
-  prediction$prob<- sapply(candidates, FUN= function (x) ngram.probability(train.data, x))
-  
-  
-  # Construir la salida: palabra mas frecuente y mejores candidatos
-  
-  prediction
-}
+candidates$bigram.prob<-(1+candidates$bigram.freq)/(1+sum(train.data$bigram.freq))
+candidates$trigram.prob<-(1+candidates$trigram.freq)/(1+sum(train.data$trigram.freq))
+candidates$tetragram.prob<-(1+candidates$tetragram.freq)/(1+sum(train.data$tetragram.freq))
 
 
-predict(fit,"fff ggg")
+candidates$prob<-(candidates$bigram.prob+candidates$trigram.prob+candidates$tetragram.prob)/3
+
+
+######
+
+#Result
+
+
+candidates[order(candidates$prob,decreasing = TRUE)[1:10],c("full.sentence","prob")]
 
 
 ```
@@ -246,7 +252,8 @@ Para cada n-grama "anterior" (4-gramas)
 sacar la última palabra
 Si es stopword o simbolo ignorar 
 
-Para cada palabra, añadir las palabras anteriores  bajo la kery de la última
+
+
 
 Lo mismo para n-gramas "posteriores" (2-gramas)  
 
@@ -262,7 +269,7 @@ En el corpus de "contexto", quitar las palabras más frecuentes del corpus, y a�
 
 
 
-¿No procesarolo por ngramas sino directamente el fichero? 
+¿No generar el contexto  por ngramas sino directamente el fichero? 
 
 ¿buscar simplemente los ngramas donde aparece la palabra? ¿diccionarios?
 
@@ -273,3 +280,7 @@ Añadir al training la búsqueda de los parámetros de backoff
 
 ¿Hacer corpus_reshape(corp, to = "sentences") para contexto?
 No guardar frecuencias por documentos, sino agrupar las frecuencias de cada token
+
+
+Hacer clustering para palabras asociadas
+Quitar de los candidatos las palabras que ya están en la frase
