@@ -12,7 +12,7 @@ Split the data in train and test sets
 
 ```{r}
 
-stress.proportion<-.01 #(maxim proportion of the total data without hanging the computer)
+stress.proportion<-.01  #(maxim proportion of the total data without hanging the computer)
 training.proportion<-.6
 validation.proportion<-.4
 testing.proportion<-.4
@@ -35,7 +35,7 @@ dir.create(dir.testing,recursive = TRUE,showWarnings = FALSE)
 
 # Function for sampling
 
-```{r, eval=FALSE, include=FALSE}
+```{r}
 
 
 sampleFile<-function(myfilename)
@@ -48,7 +48,7 @@ sampleFile<-function(myfilename)
   validation <- raw.data[sampling > training.threshold & sampling <= validation.threshold]
   testing <- raw.data[sampling > validation.threshold & sampling <= testing.threshold]
   
-  writeLines(training,paste0("",myfilename))
+  writeLines(training,paste0("./clean_data/training/",myfilename))
   writeLines(validation,paste0("./clean_data/validation/",myfilename))
   writeLines(testing,paste0("./clean_data/testing/",myfilename))
   
@@ -60,8 +60,7 @@ sampleFile<-function(myfilename)
 
 # Execution
 
-```{r, eval=FALSE, include=FALSE}
-
+```{r}
 
 
 files <- c("en_US.blogs.txt","en_US.news.txt","en_US.twitter.txt")
