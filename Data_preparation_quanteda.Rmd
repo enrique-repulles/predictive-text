@@ -53,7 +53,7 @@ Usar dfm_select para buscar rápido frecuencias
 
 
   # Corpus for frequency information
-  corpus.source<-DirSource("./clean_data/")
+  corpus.source<-DirSource("./clean_data/training/")
   tmcorpus1 <- tm::VCorpus(corpus.source, readerControl = list(reader=readPlain,language = "en"))
   tmcorpus1 <- tm_map(tmcorpus1, content_transformer(char_tolower))
   # tmcorpus <- tm_map(tmcorpus, removeWords, stopwords("english")) # quitar
@@ -91,7 +91,7 @@ Usar dfm_select para buscar rápido frecuencias
   
   context.words<-tokens(context.corpus, remove_punct = TRUE, remove_url = TRUE)
   most.frequent.words<-topfeatures(dfm(context.words),n = 100)
-  context.bigrams<-dfm(tokens_ngrams(context.words, n = 2L))
+  context.bigrams<-tokens_ngrams(context.words, n = 2L)
   
   
   
@@ -111,7 +111,7 @@ Usar dfm_select para buscar rápido frecuencias
     tetragram.freq =  docfreq(tetragram.freq, scheme="count" )  ,
     stopwords =  tm::stopwords("english"),
     most.frequent.words = names(most.frequent.words),
-    bigram.context = featnames(context.bigrams)
+    bigram.context = context.bigrams
     
     )
 
@@ -189,9 +189,9 @@ lastn<-function (str, n, sep=" ")
 ```{r}
 
 
-predict <- function (query) {
 
-######
+
+predict <- function (query) {
 
 MAX_WORDS=3
 
@@ -201,12 +201,16 @@ query.words<-unlist(strsplit (clean.query," "))
 
 # Buscar candidatos de cada una de las palabras de la query
 
-context<-train.data$bigram.context
-context.words<-unlist(sapply(X=query.words, FUN=function (x) context[grep(x=context,pattern=paste0("^",x,"_"))]))
-context.words<-sapply(X=context.words, FUN = function (x) lastn (x,1, sep="_"))
+context.regex<-paste(paste0("^",query.words,"_"),collapse="|")
+context.words<-paste(tokens_select(train.data$bigram.context, pattern=context.regex, valuetype = "regex"))
+#print(context.words)
+
+context.words<-sapply(X=context.words,FUN= function (x) lastn(x,n = 1,sep = "_"))
+#print(context.words)
 
 
 candidates<-unique(c(context.words, train.data$most.frequent.words, train.data$stopwords))
+#print(candidates)
 candidates<-data.frame(word=candidates)
 candidates$full.sentence<-paste(clean.query, candidates$word, sep = " ")
 
@@ -244,7 +248,7 @@ candidates[order(candidates$prob,decreasing = TRUE)[1:10],c("full.sentence","pro
 
 }
 
-predict("i will appreciate your")
+predict("a date in the")
 
 
 ```
@@ -267,5 +271,9 @@ predict("i will appreciate your")
 - Calcular eficiencia, perplexity...
 - Marcar los finales de frase con EOS para no contraminar contexto de una frase con el siguiente ( y quitar de los candidatos)
 - en vez de clean_data, crear subcarpetas de training y test
+- Eliminar del contexto todo lo que termine con una palabra frecuente
+- ser mas estricto al restringir los 4gramas, son lo que mas ocupa
+- Del corpus, quitar las stopwords SOLO del final del bigrama, no de antes. En vez de quitarlos con tm.remove, quitarlos con el token_select.
+- En las métricas de resultado, añadir el tamaño del training y profiling , proporcional al tamaño de la entrada
 
 
