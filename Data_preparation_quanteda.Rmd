@@ -185,7 +185,7 @@ ngram.probability <- function (train.data, ngram)
 
 
 
-predict <- function (query) {
+predict.word <- function (query) {
 
 MAX_WORDS=3
 
@@ -260,7 +260,7 @@ list(
 
 
 saveRDS(object = train.data, file = "train.data.RDS")
-saveRDS(object = predict, file = "predict.RDS")
+saveRDS(object = predict.word, file = "predict_word.RDS")
 
 rm(train.data,predict)
 
@@ -284,6 +284,8 @@ rm(train.data,predict)
 - Eliminar del contexto todo lo que termine con una palabra frecuente
 - ser mas estricto al restringir los 4gramas, son lo que mas ocupa
 - Del corpus, quitar las stopwords SOLO del final del bigrama, no de antes. En vez de quitarlos con tm.remove, quitarlos con el token_select.
+- Poner un solo EOS
+- Eliminar nombres de persona
 - En las métricas de resultado, añadir el tamaño del training y profiling , proporcional al tamaño de la entrada
 
 

@@ -25,3 +25,4 @@ clean_data/
 evaluation.nb.html
 predict.RDS
 train.data.RDS
+predict_word.RDS
