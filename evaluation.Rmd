@@ -1,0 +1,82 @@
+---
+title: "Performance evaluation"
+output: html_notebook
+---
+
+
+(Presentar este documento bien, con fecha etc)
+
+
+```{r}
+library("tm")
+library("quanteda")
+source("auxiliar_functions.R")
+```
+
+
+# Load parameters
+```{r}
+train.data<-readRDS(file = "train.data.RDS")
+predict<- readRDS(file = "predict.RDS")
+```
+
+
+Fast easy prediction
+
+```{r}
+
+```
+
+#Parameter cost
+```{r}
+
+response.time<-system.time(result <- predict("Tomorrow I will go to"), gcFirst = TRUE)[1]
+training.size<-object.size(train.data)/1024^2 # in MB
+
+```
+
+
+
+
+# Test in validation data
+
+```{r}
+  evaluation.dir<-"./clean_data/training/"
+  test.size<-100
+  corpus.source<-DirSource(evaluation.dir)
+  tmcorpus1 <- tm::VCorpus(corpus.source, readerControl = list(reader=readPlain,language = "en"))
+  tmcorpus1 <- tm_map(tmcorpus1, content_transformer(char_tolower))
+  tmcorpus1 <- tm_map(tmcorpus1, mark.sentences)
+  validation.corpus<-corpus(tmcorpus1)
+  sentence.size<-6L
+  sentences<-tokens_ngrams(tokens(validation.corpus, remove_url = TRUE,  remove_punct = TRUE), n = sentence.size)
+  sentences<-removeFeatures(x=sentences, features="EOS", valuetype="regex")
+  
+  
+
+  sampled.sentences<-sample(unlist(sentences),size = test.size)
+  
+
+  result<-data.frame(sampled.sentences)
+  result$sampled.sentences<-as.character(result$sampled.sentences)
+  result$query<-sapply(X=result$sampled.sentences, FUN=function(x) {paste(unlist(strsplit(x,"_"))[1:sentence.size-1],collapse=" ")})
+  result$true.word<-sapply(X=result$sampled.sentences, FUN=function(x) {unlist(strsplit(x,"_"))[sentence.size]})
+  
+
+  result$prediction<-sapply(X=result$query,FUN = function(x) {predict(x)$word})
+  
+  result$correct<-(result$prediction==result$true.word)
+  
+  
+  
+
+```
+
+
+Measures 
+```{r}
+mean(result$correct)
+
+
+```
+
