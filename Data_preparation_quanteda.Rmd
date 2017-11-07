@@ -80,10 +80,10 @@ Usar dfm_select para buscar rápido frecuencias
   trigrams<-removeFeatures(x=trigrams, features="EOS", valuetype="regex")
   tetragrams<-removeFeatures(x=tetragrams, features="EOS", valuetype="regex")
   
-  word.freq<-dfm(words)
-  bigram.freq<-dfm(bigrams)
-  trigram.freq<-dfm(trigrams)
-  tetragram.freq<-dfm(tetragrams)
+  word.dfm<-dfm(words)
+  bigram.dfm<-dfm(bigrams)
+  trigram.dfm<-dfm(trigrams)
+  tetragram.dfm<-dfm(tetragrams)
   
 
   
@@ -111,15 +111,24 @@ Usar dfm_select para buscar rápido frecuencias
   #context.corpus<-corpus(tmcorpus)
   
   # Organize result object 
+  
 
   
-  
-  
+
+freq <- textstat_frequency(bigram.dfm)
+bigram.freq <-freq$frequency
+names(bigram.freq) <- freq$feature
+freq <- textstat_frequency(trigram.dfm)
+trigram.freq<-freq$frequency
+names( trigram.freq) <- freq$feature
+freq <- textstat_frequency(tetragram.dfm)
+tetragram.freq <-freq$frequency
+names(tetragram.freq) <- freq$feature
+      
   train.data<-list (
-    word.freq = docfreq(word.freq, scheme="count" )  ,
-    bigram.freq = docfreq(bigram.freq, scheme="count" )  ,
-    trigram.freq =  docfreq(trigram.freq, scheme="count" )  ,
-    tetragram.freq =  docfreq(tetragram.freq, scheme="count" )  ,
+    bigram.freq=bigram.freq,
+    trigram.freq=trigram.freq,
+    tetragram.freq=tetragram.freq,
     stopwords =  tm::stopwords("english"),
     most.frequent.words = names(most.frequent.words),
     bigram.context = context.bigrams
@@ -130,6 +139,21 @@ Usar dfm_select para buscar rápido frecuencias
 
 ```
 
+test
+```{r}
+
+
+
+
+
+       
+       
+```       
+       
+cleanup
+
+
+
 ```{r}
 #cleanup
   rm (word.freq,  bigram.freq,trigram.freq,tetragram.freq,most.frequent.words,context.corpus, tmcorpus1, tmcorpus2)
@@ -137,13 +161,12 @@ Usar dfm_select para buscar rápido frecuencias
 
 
 ```
-
-
+)
 
  
 ```{r}
 
-ngram.probability <- function (train.data, ngram)
+ngram.probability.NOT.USED <- function (train.data, ngram)
 {
   
   print(ngram)
@@ -214,9 +237,11 @@ candidates$bigrams<-sapply(candidates$full.sentence, function (x) lastn (x,2))
 candidates$trigrams<-sapply(candidates$full.sentence, function (x) lastn (x,3))
 candidates$tetragrams<-sapply(candidates$full.sentence, function (x) lastn (x,4))
 
+#Calculate frecuencies for candidates
+
 candidates$bigram.freq<-train.data$bigram.freq[candidates$bigrams]
-candidates$trigram.freq<-train.data$trigram.freq[candidates$trigram]
-candidates$tetragram.freq<-train.data$tetragram.freq[candidates$tetragram]
+candidates$trigram.freq<-train.data$trigram.freq[candidates$trigrams]
+candidates$tetragram.freq<-train.data$tetragram.freq[candidates$tetragrams]
 
 candidates$bigram.freq[is.na(candidates$bigram.freq)]<-0
 candidates$trigram.freq[is.na(candidates$trigram.freq)]<-0
@@ -229,9 +254,9 @@ candidates$tetragram.prob<-(1+candidates$tetragram.freq)/(1+sum(train.data$tetra
 #print(candidates)
 
 #WEIGHTS
-w1 <- .1
-w2 <- .3
-w3 <- .6
+w1 <- .05
+w2 <- .35
+w3 <- .8
 
 candidates$prob<-(w1*candidates$bigram.prob+w2*candidates$trigram.prob+w3*candidates$tetragram.prob)/3
 
@@ -243,13 +268,13 @@ candidates$prob<-(w1*candidates$bigram.prob+w2*candidates$trigram.prob+w3*candid
 #print(candidates)
 
 list(
-  candidates=candidates[order(candidates$prob,decreasing = TRUE)[1:10],c("full.sentence","word", "prob")], 
+  candidates=candidates[order(candidates$prob,decreasing = TRUE)[1:10],], 
   word=candidates[which.max(candidates$prob),]$word
     )
 }
 
 
-
+predict.word("Tomorrow I will")
 
 
 
@@ -262,7 +287,7 @@ list(
 saveRDS(object = train.data, file = "train.data.RDS")
 saveRDS(object = predict.word, file = "predict_word.RDS")
 
-rm(train.data,predict)
+rm(train.data,predict.word)
 
 ```
 

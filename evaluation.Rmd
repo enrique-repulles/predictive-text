@@ -18,6 +18,8 @@ source("auxiliar_functions.R")
 ```{r}
 train.data<-readRDS(file = "train.data.RDS")
 predict.word<- readRDS(file = "predict_word.RDS")
+
+
 ```
 
 
@@ -33,6 +35,8 @@ Fast easy prediction
 response.time<-system.time(result <- predict.word("Tomorrow I will go to"), gcFirst = TRUE)[1]
 training.size<-object.size(train.data)/1024^2 # in MB
 
+
+
 ```
 
 
@@ -42,7 +46,7 @@ training.size<-object.size(train.data)/1024^2 # in MB
 
 ```{r}
   evaluation.dir<-"./clean_data/training/"
-  test.size<-120
+  test.size<-100
   corpus.source<-DirSource(evaluation.dir)
   tmcorpus1 <- tm::VCorpus(corpus.source, readerControl = list(reader=readPlain,language = "en"))
   validation.corpus<-corpus(tmcorpus1)
@@ -51,6 +55,8 @@ training.size<-object.size(train.data)/1024^2 # in MB
   sampled.sentences<-sample(unlist(sentences),size = test.size)
   sampled.sentences<-tolower(sampled.sentences)
   sampled.sentences<-removePunctuation(sampled.sentences)
+  sampled.sentences<-removeNumbers(sampled.sentences)
+  sampled.sentences<-stripWhitespace(removeNumbers(sampled.sentences))
   
   #remove sentences with length 1 
   nwords<-function (x)
@@ -109,8 +115,13 @@ result$prediction<-sapply(X=result$query,FUN = function(x) {predict.word(x)$word
 Measures 
 ```{r}
 result$correct<-(result$prediction==result$correct.word)
-mean(result$correct)
+accuracy<-mean(result$correct)
 
+
+```
+
+```{r}
+print(list(  evaluation.dir=evaluation.dir,  test.size=test.size,response.time=response.time, training.size=training.size,accuracy=accuracy))
 
 ```
 
