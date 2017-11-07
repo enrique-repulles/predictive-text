@@ -25,6 +25,7 @@ Usar quanteda
 ```{r}
 library("tm")
 library("quanteda")
+source("auxiliar_functions.R")
 ```
 
 
@@ -51,15 +52,16 @@ Usar dfm_select para buscar rápido frecuencias
   offensive.words<-gsub("[\"]","",offensive.words)
   offensive.words<-gsub("[,]","",offensive.words)  
 
-
+  
   # Corpus for frequency information
   corpus.source<-DirSource("./clean_data/training/")
   tmcorpus1 <- tm::VCorpus(corpus.source, readerControl = list(reader=readPlain,language = "en"))
   tmcorpus1 <- tm_map(tmcorpus1, content_transformer(char_tolower))
   # tmcorpus <- tm_map(tmcorpus, removeWords, stopwords("english")) # quitar
-  #tmcorpus <- tm_map(tmcorpus, removePunctuation)
   tmcorpus1 <- tm_map(tmcorpus1, removeWords, offensive.words)
   tmcorpus1 <- tm_map(tmcorpus1, removeNumbers)
+  tmcorpus1 <- tm_map(tmcorpus1, mark.sentences)
+  #tmcorpus <- tm_map(tmcorpus, removePunctuation)
 
   tmcorpus1 <- tm_map(tmcorpus1 ,stripWhitespace)
   frequency.corpus<-corpus(tmcorpus1)
@@ -70,6 +72,13 @@ Usar dfm_select para buscar rápido frecuencias
   bigrams<-tokens_ngrams(words, n = 2L)
   trigrams<-tokens_ngrams(words, n = 3L)
   tetragrams<-tokens_ngrams(words, n = 4L)
+  
+    
+    
+  words<-removeFeatures(x=words, features="EOS", valuetype="regex")
+  bigrams<-removeFeatures(x=bigrams, features="EOS", valuetype="regex")
+  trigrams<-removeFeatures(x=trigrams, features="EOS", valuetype="regex")
+  tetragrams<-removeFeatures(x=tetragrams, features="EOS", valuetype="regex")
   
   word.freq<-dfm(words)
   bigram.freq<-dfm(bigrams)
@@ -85,16 +94,18 @@ Usar dfm_select para buscar rápido frecuencias
   tmcorpus2 <- tm_map(tmcorpus2, removePunctuation)
   tmcorpus2 <- tm_map(tmcorpus2, content_transformer(tolower))
   tmcorpus2 <- tm_map(tmcorpus2, removeWords, tm::stopwords("english"))
+  tmcorpus2 <- tm_map(tmcorpus2, mark.sentences)
   tmcorpus2 <- tm_map(tmcorpus2, removeWords, offensive.words)
   tmcorpus2 <- tm_map(tmcorpus2, stripWhitespace)
   context.corpus<-corpus(tmcorpus2)
   
   context.words<-tokens(context.corpus, remove_punct = TRUE, remove_url = TRUE)
-  most.frequent.words<-topfeatures(dfm(context.words),n = 100)
   context.bigrams<-tokens_ngrams(context.words, n = 2L)
+  context.words<-removeFeatures(x=context.words, features="EOS", valuetype="regex")
+  context.bigrams<-removeFeatures(x=context.bigrams, features="EOS", valuetype="regex")
+
   
-  
-  
+  most.frequent.words<-topfeatures(dfm(context.words),n = 100)
   
   #tmcorpus <- tm_map(tmcorpus, removeWords, most.frequent.words)
   #context.corpus<-corpus(tmcorpus)
@@ -164,23 +175,6 @@ ngram.probability <- function (train.data, ngram)
 
 
 
-#auxiliar function 
-
-Last n words of a string
-```{r}
-lastn<-function (str, n, sep=" ")
-{
-  
-  v <- unlist(strsplit(str, sep))
-  from <- max(1,length(v)+1-n)
-  to <- length(v)
-  paste(v[from:to], collapse = "_")
-}
-# test
-# lastn("uno dos tres", 3)
-```
-
-
 
 # Prediction 
 
@@ -205,11 +199,12 @@ context.regex<-paste(paste0("^",query.words,"_"),collapse="|")
 context.words<-paste(tokens_select(train.data$bigram.context, pattern=context.regex, valuetype = "regex"))
 #print(context.words)
 
-context.words<-sapply(X=context.words,FUN= function (x) lastn(x,n = 1,sep = "_"))
+context.words<-unlist(sapply(X=context.words,FUN= function (x) lastn(x,n = 1,sep = "_")))
 #print(context.words)
 
 
 candidates<-unique(c(context.words, train.data$most.frequent.words, train.data$stopwords))
+#candidates<-unique(c(query.words,context.words)))
 #print(candidates)
 candidates<-data.frame(word=candidates)
 candidates$full.sentence<-paste(clean.query, candidates$word, sep = " ")
@@ -231,6 +226,8 @@ candidates$bigram.prob<-(1+candidates$bigram.freq)/(1+sum(train.data$bigram.freq
 candidates$trigram.prob<-(1+candidates$trigram.freq)/(1+sum(train.data$trigram.freq))
 candidates$tetragram.prob<-(1+candidates$tetragram.freq)/(1+sum(train.data$tetragram.freq))
 
+#print(candidates)
+
 #WEIGHTS
 w1 <- .1
 w2 <- .3
@@ -243,16 +240,31 @@ candidates$prob<-(w1*candidates$bigram.prob+w2*candidates$trigram.prob+w3*candid
 
 #Result
 
+#print(candidates)
 
-candidates[order(candidates$prob,decreasing = TRUE)[1:10],c("full.sentence","prob")]
-
+list(
+  candidates=candidates[order(candidates$prob,decreasing = TRUE)[1:10],c("full.sentence","word", "prob")], 
+  word=candidates[which.max(candidates$prob),]$word
+    )
 }
 
-predict("a date in the")
+
+
+
 
 
 ```
 
+## Save objects
+```{r}
+
+
+saveRDS(object = train.data, file = "train.data.RDS")
+saveRDS(object = predict, file = "predict.RDS")
+
+rm(train.data,predict)
+
+```
 
 
 
@@ -269,8 +281,6 @@ predict("a date in the")
 - Hacer clustering para palabras asociadas
 - Quitar de los candidatos las palabras que ya están en la frase
 - Calcular eficiencia, perplexity...
-- Marcar los finales de frase con EOS para no contraminar contexto de una frase con el siguiente ( y quitar de los candidatos)
-- en vez de clean_data, crear subcarpetas de training y test
 - Eliminar del contexto todo lo que termine con una palabra frecuente
 - ser mas estricto al restringir los 4gramas, son lo que mas ocupa
 - Del corpus, quitar las stopwords SOLO del final del bigrama, no de antes. En vez de quitarlos con tm.remove, quitarlos con el token_select.

@@ -12,7 +12,7 @@ Split the data in train and test sets
 
 ```{r}
 
-stress.proportion<-.01  #(maxim proportion of the total data without hanging the computer)
+stress.proportion<-.1  #(maxim proportion of the total data without hanging the computer)
 training.proportion<-.6
 validation.proportion<-.4
 testing.proportion<-.4
