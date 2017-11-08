@@ -101,37 +101,62 @@ Usar dfm_select para buscar rápido frecuencias
   # Organize result object 
   
 
-  calculate.ngram.freq <- function(words, n) 
+  calculate.ngram.freq <- function(words, n, umbral ) 
   {
     ngrams<-tokens_ngrams(words, n = n)
     ngrams<-removeFeatures(x=ngrams, features="EOS", valuetype="regex")
     ngrams.dfm<-dfm(ngrams)
     
-    # word.dfm<-dfm_trim(word.dfm)
+    #word.dfm<-dfm_trim(ngrams.dfm, min_count=umbral, max_count=10)
     
     freq <- textstat_frequency(ngrams.dfm)
     ngrams.freq <-freq$frequency
     names(ngrams.freq) <- freq$feature
+    
+    #print(c(ngrams.freq,sum(freq$frequency),ngrams.freq/sum(freq$frequency)))
+    
+    ngrams.freq<-(ngrams.freq[(ngrams.freq/sum(freq$frequency))>umbral])
     ngrams.freq
   }
   
   
+  #weights
+  w1<-.00000001
+  w2<- .01
+  w3<-.6
+
       
   train.data<-list (
-    bigram.freq=calculate.ngram.freq(words,2L),
-    trigram.freq=calculate.ngram.freq(words,3L),
-    tetragram.freq=calculate.ngram.freq(words,4L),
+    word.freq=calculate.ngram.freq(words,1L,0 ),
+    bigram.freq=calculate.ngram.freq(words,2L,2.664e-06),
+    trigram.freq=calculate.ngram.freq(words,3L,2.907e-06),
+    tetragram.freq=calculate.ngram.freq(words,4L,3.182e-06),
 # most.frequent.words = names(most.frequent.words),
 # bigram.context = context.bigrams,
-    stopwords =  tm::stopwords("english")
+    stopwords =  tm::stopwords("english"),
+    weights=c(w1,w2,w3, 1-w1-w2-w3)
     )
-
-  
 
   
 
 ```
 
+
+
+Coberture analysis
+
+```{r}
+
+
+
+train.data$weights
+
+summary(train.data$word.freq/sum(train.data$word.freq))
+summary(train.data$bigram.freq/sum(train.data$bigram.freq))
+summary(train.data$trigram.freq/sum(train.data$trigram.freq))
+summary(train.data$tetragram.freq/sum(train.data$tetragram.freq))
+
+```
 
 
 
@@ -145,45 +170,12 @@ Usar dfm_select para buscar rápido frecuencias
 )
 
  
-```{r}
-
-ngram.probability.NOT.USED <- function (train.data, ngram)
-{
-  
-  print(ngram)
-  tokens<-unlist(strsplit(ngram, "_"))
-  # Look in bigrams
-  
-  bigram.pattern <- paste(tokens[1:min(2, length(tokens))], collapse = "_")
-  #print(bigram.pattern)
-  bigram.prob<-(1+sum(dfm_select(train.data$bigram.freq,bigram.pattern))) / (1+sum(ntoken(train.data$bigram.freq)))
-  #print(bigram.prob)
-  
-  trigram.pattern <- paste(tokens[1:min(3, length(tokens))], collapse = "_")
-  #print(trigram.pattern)
-  trigram.prob<-(1+sum(dfm_select(train.data$trigram.freq,trigram.pattern))) / (1+sum(ntoken(train.data$trigram.freq)))
-  #print(trigram.prob)
-  
-  tetragram.pattern <- paste(tokens[1:min(4, length(tokens))], collapse = "_") 
-  #print(tetragram.pattern)
-  tetragram.prob<-(1+sum(dfm_select(train.data$tetragram.freq,tetragram.pattern))) / (1+sum(ntoken(train.data$tetragram.freq)))
-  #print(tetragram.prob)
-  
-  max(bigram.prob,trigram.prob, tetragram.prob)
-}
-
-#test 
-#ngram.probability(training.data,"my_company")
-
-```
-
-
 
 
 # Prediction 
 
 ```{r}
-query<-"in the rain"
+str(train.data)
 ```
 
 
@@ -191,83 +183,132 @@ query<-"in the rain"
 
 ```{r}
 
-query<-"in the rain"
 
-predict.word <- function (query) {
-
-MAX_WORDS=3
-
-clean.query<-tolower(trimws(stripWhitespace(removePunctuation(removeNumbers(query)))))
-query.words<-unlist(strsplit (clean.query," "))
-
-# look for candidates
-last_word <- lastn(query,1)
-candidate_pattern <- paste0(c("^","_"), last_word, "_", collapse = "|")
-candidate_index<-grep (names(train.data$bigram.freq),pattern = candidate_pattern)
-candidates<-unlist(sapply(X=names(train.data$bigram.freq)[candidate_index], FUN=function(x)lastn(x,1,"_")))
-candidates<-unique(c(candidates, train.data$stopwords))
-
-
-candidates<-data.frame(word=candidates)
-candidates$full.sentence<-paste(clean.query, candidates$word, sep = " ")
-
-
-candidates$bigrams<-sapply(candidates$full.sentence, function (x) lastn (x,2))
-candidates$trigrams<-sapply(candidates$full.sentence, function (x) lastn (x,3))
-candidates$tetragrams<-sapply(candidates$full.sentence, function (x) lastn (x,4))
-
-
-#Calculate frecuencies for candidates
-
-candidates$bigram.freq<-train.data$bigram.freq[candidates$bigrams]
-candidates$trigram.freq<-train.data$trigram.freq[candidates$trigrams]
-candidates$tetragram.freq<-train.data$tetragram.freq[candidates$tetragrams]
-
-candidates$bigram.freq[is.na(candidates$bigram.freq)]<-0
-candidates$trigram.freq[is.na(candidates$trigram.freq)]<-0
-candidates$tetragram.freq[is.na(candidates$tetragram.freq)]<-0
-
-candidates$bigram.prob<-(1+candidates$bigram.freq)/(1+sum(train.data$bigram.freq))
-candidates$trigram.prob<-(1+candidates$trigram.freq)/(1+sum(train.data$trigram.freq))
-candidates$tetragram.prob<-(1+candidates$tetragram.freq)/(1+sum(train.data$tetragram.freq))
-
-#print(candidates)
-
-#WEIGHTS
-w1 <- .00001
-w2 <- .4
-w3 <- 1-w1-w2
-
-candidates$prob<-(w1*candidates$bigram.prob+w2*candidates$trigram.prob+w3*candidates$tetragram.prob)/3
-
-
-######
-
-#Result
-
-#print(candidates)
-
-list(
-  candidates=candidates[order(candidates$prob,decreasing = TRUE)[1:10],], 
-  word=candidates[which.max(candidates$prob),]$word
-    )
+predict.word <- function (query) 
+{
+  clean.query<-tolower(trimws(stripWhitespace(removePunctuation(removeNumbers(query)))))
+  
+  candidates<-candidates.probability(clean.query)
+  
+  # Remove repeated words
+  
+  
+  list(
+    candidates=candidates[order(candidates$prob,decreasing = TRUE)[1:10],], 
+    word=candidates[which.max(candidates$prob),]$word
+  )
+  
+  
 }
 
 
-predict.word("what a romantic moment")
+
+find.candidates<-function (query)
+{
+  query.words<-unlist(strsplit (query," "))
+  last_word <- lastn(query,1)
+  candidate_pattern <- paste0(c("^","_"), last_word, "_", collapse = "|")
+  candidate_index<-grep (names(train.data$bigram.freq),pattern = candidate_pattern)
+  candidates<-unlist(sapply(X=names(train.data$bigram.freq)[candidate_index], FUN=function(x)lastn(x,1,"_")))
+  
+  #Remove candidates already in the sentence
+
+  
+  if (length(candidates)==0 & length(query.words)>1)
+  { # look foor previous words
+    candidates<-find.candidates(paste(query.words[1:(length(query.words)-1)],collapse = " "))
+  }
+  
+  if (length(candidates)==0 & length(query.words)==1)
+  {
+    candidates<-train.data$stopwords
+  }
+  
+  clean.candidates<-candidates[!(candidates %in% query.words)]
+  
+
+  if (length(clean.candidates)>0)
+  {
+    return(clean.candidates)
+  }
+  else 
+  {
+    return(candidates)
+  }
+
+    
+}
+
+candidates.probability <- function (query) {
+
+  MAX_WORDS<-4
+  
+
+  # look for candidates
+
+  candidates<-data.frame(word=find.candidates(query))
+  candidates$full.sentence<-paste(query, candidates$word, sep = " ")
+
+  candidates$words<-sapply(candidates$full.sentence, function (x) lastn (x,1))
+  candidates$bigrams<-sapply(candidates$full.sentence, function (x) lastn (x,2))
+  candidates$trigrams<-sapply(candidates$full.sentence, function (x) lastn (x,3))
+  candidates$tetragrams<-sapply(candidates$full.sentence, function (x) lastn (x,4))
+
+  #Calculate frecuencies for candidates
+  
+  candidates$word.freq<-train.data$word.freq[candidates$words]
+  candidates$bigram.freq<-train.data$bigram.freq[candidates$bigrams]
+  candidates$trigram.freq<-train.data$trigram.freq[candidates$trigrams]
+  candidates$tetragram.freq<-train.data$tetragram.freq[candidates$tetragrams]
+
+  candidates$word.freq[is.na(candidates$word.freq)]<-0
+  candidates$bigram.freq[is.na(candidates$bigram.freq)]<-0
+  candidates$trigram.freq[is.na(candidates$trigram.freq)]<-0
+  candidates$tetragram.freq[is.na(candidates$tetragram.freq)]<-0
+  candidates$word.prob<-(1+candidates$word.freq)/(1+sum(train.data$word.freq)) 
+  candidates$bigram.prob<-(1+candidates$bigram.freq)/(1+sum(train.data$bigram.freq)) 
+  candidates$trigram.prob<-(1+candidates$trigram.freq)/(1+sum(train.data$trigram.freq)) 
+  candidates$tetragram.prob<-(1+candidates$tetragram.freq)/(1+sum(train.data$tetragram.freq)) 
+
+  candidates$prob<-(
+    train.data$weights[1]*candidates$word.prob + 
+    train.data$weights[2]*candidates$bigram.prob +
+    train.data$weights[3]*candidates$trigram.prob +
+    train.data$weights[4]*candidates$tetragram.prob)/4
+  return (candidates)
+
+  
+}
+
+
+predict.word("there are many rm engines in this series some of which are new and some" )
 
 
 
 ```
+
+
+```{r}
+
+frase<-c("una","prueba","de","palabras")
+
+candidatos<-c("la", "palabras")
+
+
+
+
+```
+
+
 
 ## Save objects
 ```{r}
 
 
-saveRDS(object = train.data, file = "train.data.RDS")
-saveRDS(object = predict.word, file = "predict_word.RDS")
+#saveRDS(object = train.data, file = "train.data.RDS")
+#saveRDS(object = predict.word, file = "predict_word.RDS")
 
-rm(train.data,predict.word)
+#rm(train.data,predict.word)
 
 ```
 
@@ -286,6 +327,7 @@ rm(train.data,predict.word)
 - Eliminar del contexto todo lo que termine con una palabra frecuente
 - ser mas estricto al restringir los 4gramas, son lo que mas ocupa
 - Eliminar nombres de persona
+- Ren
 
 
 

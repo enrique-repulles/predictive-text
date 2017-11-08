@@ -1,6 +1,8 @@
 ---
 title: "Performance evaluation"
-output: html_notebook
+output:
+  pdf_document: default
+  html_notebook: default
 ---
 
 
@@ -8,120 +10,105 @@ output: html_notebook
 
 
 ```{r}
-library("tm")
-library("quanteda")
-source("auxiliar_functions.R")
-```
-
-
-# Load parameters
-```{r}
-train.data<-readRDS(file = "train.data.RDS")
-predict.word<- readRDS(file = "predict_word.RDS")
-
-
-```
-
-
-Fast easy prediction
-
-```{r}
-
-```
-
-#Parameter cost
-```{r}
-
-response.time<-system.time(result <- predict.word("Tomorrow I will go to"), gcFirst = TRUE)[1]
-training.size<-object.size(train.data)/1024^2 # in MB
-
-
-
+source("main.R")
 ```
 
 
 
 
-# Test in validation data
-
+Configuration
 ```{r}
   evaluation.dir<-"./clean_data/validation/"
-  test.size<-200
-  corpus.source<-DirSource(evaluation.dir)
-  tmcorpus1 <- tm::VCorpus(corpus.source, readerControl = list(reader=readPlain,language = "en"))
-  validation.corpus<-corpus(tmcorpus1)
-  sentences<-tokens(validation.corpus, remove_url = TRUE,  what = "sentence")
-
-  sampled.sentences<-sample(unlist(sentences),size = test.size)
-  sampled.sentences<-tolower(sampled.sentences)
-  sampled.sentences<-removePunctuation(sampled.sentences)
-  sampled.sentences<-removeNumbers(sampled.sentences)
-  sampled.sentences<-stripWhitespace(removeNumbers(sampled.sentences))
-  
-  #remove sentences with length 1 
-  nwords<-function (x)
-  {
-    words<-unlist(strsplit(x," "))
-    length(words)
-  }
-  
-  
-  large.sentences<-(sapply(X=sampled.sentences, FUN=nwords) > 2)
-  sampled.sentences<-sampled.sentences[large.sentences]
-  
-
-  
-
+  taining.dir<-"./clean_data/training/"
+  test.size<-100
 ```
 
 
-Data frame with results
+
+
+Parameter estimation
 
 ```{r}
-  result<-data.frame(sampled.sentences)
-  result$sampled.sentences<-as.character(result$sampled.sentences)
-  
-  
-  get.query<-function (x)
-  {
-    words<-unlist(strsplit(x," "))
-    paste(words[1:length(words)-1],collapse=" ")
-  }
-  
-  get.correct.word<-function (x)
-  {
-    words<-unlist(strsplit(x," "))
-    words[length(words)]
-  }
-  
-  
-  
-  result$query<-sapply(X=result$sampled.sentences, FUN=get.query)
-  result$correct.word<-sapply(X=result$sampled.sentences, FUN=get.correct.word)
-  
-
-
-  
-```
-
-
-Execution 
-```{r}
-result$prediction<-sapply(X=result$query,FUN = function(x) {predict.word(x)$word})
-```
 
 
 
-Measures 
-```{r}
-result$correct<-(result$prediction==result$correct.word)
-accuracy<-mean(result$correct)
+# Default parameters
+
+#default weights
+
+w1<-.00000001
+w2<- .01
+w3<-.6
+ 
+ 
+#default thresholds
+
+t1<-0 
+t2<-2.664e-06
+t3<-2.907e-06
+t4<-3.182e-06
+
+
+parameters<-data.frame(test.num=1:2)
+parameters$t1<-t1*parameters$test.num
+parameters$t2<-t2*parameters$test.num
+parameters$t3<-t3*parameters$test.num
+parameters$t4<-t4/parameters$test.num
+parameters$w1<-w1/(2*parameters$test.num)
+parameters$w2<-w2/(2*parameters$test.num)
+parameters$w3<-w3/(2*parameters$test.num)
 
 
 ```
+
 
 ```{r}
-print(list(  evaluation.dir=evaluation.dir,  test.size=test.size,response.time=response.time, training.size=training.size,accuracy=accuracy))
+parameters
+```
+
+
+
+
+```{r}
+
+#table construction
+
+parameters$accuracy<-0
+parameters$response.time<-0
+parameters$training.size<-0
+
+
+for (i in 1:nrow(parameters))  
+{
+  print(paste("Execution:",i))
+  
+  train.data<-train(taining.dir,
+            parameters[i,]$w1,
+            parameters[i,]$w2,
+            parameters[i,]$w3,
+            parameters[i,]$t1,
+            parameters[i,]$t2,
+            parameters[i,]$t3,
+            parameters[i,]$t4)
+  
+  response.time<-system.time(result <- predict.word("Tomorrow I will go to"), gcFirst = TRUE)[1]
+  names(response.time)<-NULL
+  parameters[i,]$response.time<-response.time
+  parameters[i,]$training.size<-object.size(train.data)/1024^2 # in MB
+  #evaluation
+  result<-execute.test(evaluation.dir,test.size)
+  result$correct<-(result$prediction==result$correct.word)
+  parameters[i,]$accuracy<-mean(result$correct)
+
+}
+
 
 ```
+
+
+Result
+```{r}
+parameters
+```
+
 

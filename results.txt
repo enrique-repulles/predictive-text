@@ -58,3 +58,21 @@ $accuracy
 USAR docfreq está mal! sólo retorna 1-3
 
 Usando textstat_frequency en vez de docfreq
+
+
+Cogiendo words ademas en gramas y buscando candidatos como sucesores de palabras anteriores y eliminando repetidos
+$evaluation.dir
+[1] "./clean_data/validation/"
+
+$test.size
+[1] 100
+
+$response.time
+user.self 
+     5.89 
+
+$training.size
+532.2 bytes
+
+$accuracy
+[1] 0.03125
