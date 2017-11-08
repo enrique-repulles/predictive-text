@@ -45,8 +45,8 @@ training.size<-object.size(train.data)/1024^2 # in MB
 # Test in validation data
 
 ```{r}
-  evaluation.dir<-"./clean_data/training/"
-  test.size<-100
+  evaluation.dir<-"./clean_data/validation/"
+  test.size<-200
   corpus.source<-DirSource(evaluation.dir)
   tmcorpus1 <- tm::VCorpus(corpus.source, readerControl = list(reader=readPlain,language = "en"))
   validation.corpus<-corpus(tmcorpus1)

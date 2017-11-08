@@ -69,43 +69,31 @@ Usar dfm_select para buscar rápido frecuencias
 
   # Ngrams frequency
   words<-tokens(frequency.corpus, remove_punct = TRUE, remove_url = TRUE)
-  bigrams<-tokens_ngrams(words, n = 2L)
-  trigrams<-tokens_ngrams(words, n = 3L)
-  tetragrams<-tokens_ngrams(words, n = 4L)
   
-    
-    
-  words<-removeFeatures(x=words, features="EOS", valuetype="regex")
-  bigrams<-removeFeatures(x=bigrams, features="EOS", valuetype="regex")
-  trigrams<-removeFeatures(x=trigrams, features="EOS", valuetype="regex")
-  tetragrams<-removeFeatures(x=tetragrams, features="EOS", valuetype="regex")
   
-  word.dfm<-dfm(words)
-  bigram.dfm<-dfm(bigrams)
-  trigram.dfm<-dfm(trigrams)
-  tetragram.dfm<-dfm(tetragrams)
-  
+
+
 
   
   # Corpus for context information
   
-  tmcorpus2 <- tm::VCorpus(corpus.source, readerControl = list(reader=readPlain,language = "en"))
-  tmcorpus2 <- tm_map(tmcorpus2, removeNumbers)
-  tmcorpus2 <- tm_map(tmcorpus2, removePunctuation)
-  tmcorpus2 <- tm_map(tmcorpus2, content_transformer(tolower))
-  tmcorpus2 <- tm_map(tmcorpus2, removeWords, tm::stopwords("english"))
-  tmcorpus2 <- tm_map(tmcorpus2, mark.sentences)
-  tmcorpus2 <- tm_map(tmcorpus2, removeWords, offensive.words)
-  tmcorpus2 <- tm_map(tmcorpus2, stripWhitespace)
-  context.corpus<-corpus(tmcorpus2)
+  # tmcorpus2 <- tm::VCorpus(corpus.source, readerControl = list(reader=readPlain,language = "en"))
+  # tmcorpus2 <- tm_map(tmcorpus2, removeNumbers)
+  # tmcorpus2 <- tm_map(tmcorpus2, removePunctuation)
+  # tmcorpus2 <- tm_map(tmcorpus2, content_transformer(tolower))
+  # tmcorpus2 <- tm_map(tmcorpus2, removeWords, tm::stopwords("english"))
+  # tmcorpus2 <- tm_map(tmcorpus2, mark.sentences)
+  # tmcorpus2 <- tm_map(tmcorpus2, removeWords, offensive.words)
+  # tmcorpus2 <- tm_map(tmcorpus2, stripWhitespace)
+#  context.corpus<-corpus(tmcorpus2)
   
-  context.words<-tokens(context.corpus, remove_punct = TRUE, remove_url = TRUE)
-  context.bigrams<-tokens_ngrams(context.words, n = 2L)
-  context.words<-removeFeatures(x=context.words, features="EOS", valuetype="regex")
-  context.bigrams<-removeFeatures(x=context.bigrams, features="EOS", valuetype="regex")
+#  context.words<-tokens(context.corpus, remove_punct = TRUE, remove_url = TRUE)
+  #context.bigrams<-tokens_ngrams(context.words, n = 2L)
+  #context.words<-removeFeatures(x=context.words, features="EOS", valuetype="regex")
+  #context.bigrams<-removeFeatures(x=context.bigrams, features="EOS", valuetype="regex")
 
   
-  most.frequent.words<-topfeatures(dfm(context.words),n = 100)
+#  most.frequent.words<-topfeatures(dfm(context.words),n = 100)
   
   #tmcorpus <- tm_map(tmcorpus, removeWords, most.frequent.words)
   #context.corpus<-corpus(tmcorpus)
@@ -113,51 +101,44 @@ Usar dfm_select para buscar rápido frecuencias
   # Organize result object 
   
 
+  calculate.ngram.freq <- function(words, n) 
+  {
+    ngrams<-tokens_ngrams(words, n = n)
+    ngrams<-removeFeatures(x=ngrams, features="EOS", valuetype="regex")
+    ngrams.dfm<-dfm(ngrams)
+    
+    # word.dfm<-dfm_trim(word.dfm)
+    
+    freq <- textstat_frequency(ngrams.dfm)
+    ngrams.freq <-freq$frequency
+    names(ngrams.freq) <- freq$feature
+    ngrams.freq
+  }
   
-
-freq <- textstat_frequency(bigram.dfm)
-bigram.freq <-freq$frequency
-names(bigram.freq) <- freq$feature
-freq <- textstat_frequency(trigram.dfm)
-trigram.freq<-freq$frequency
-names( trigram.freq) <- freq$feature
-freq <- textstat_frequency(tetragram.dfm)
-tetragram.freq <-freq$frequency
-names(tetragram.freq) <- freq$feature
+  
       
   train.data<-list (
-    bigram.freq=bigram.freq,
-    trigram.freq=trigram.freq,
-    tetragram.freq=tetragram.freq,
-    stopwords =  tm::stopwords("english"),
-    most.frequent.words = names(most.frequent.words),
-    bigram.context = context.bigrams
-    
+    bigram.freq=calculate.ngram.freq(words,2L),
+    trigram.freq=calculate.ngram.freq(words,3L),
+    tetragram.freq=calculate.ngram.freq(words,4L),
+# most.frequent.words = names(most.frequent.words),
+# bigram.context = context.bigrams,
+    stopwords =  tm::stopwords("english")
     )
+
+  
 
   
 
 ```
 
-test
-```{r}
-
-
-
-
-
-       
-       
-```       
-       
-cleanup
 
 
 
 ```{r}
 #cleanup
-  rm (word.freq,  bigram.freq,trigram.freq,tetragram.freq,most.frequent.words,context.corpus, tmcorpus1, tmcorpus2)
-  rm (bigrams, trigrams, tetragrams, context.bigrams, context.words, words)
+  rm (words, tmcorpus1)
+  
 
 
 ```
@@ -201,12 +182,16 @@ ngram.probability.NOT.USED <- function (train.data, ngram)
 
 # Prediction 
 
+```{r}
+query<-"in the rain"
+```
+
+
 
 
 ```{r}
 
-
-
+query<-"in the rain"
 
 predict.word <- function (query) {
 
@@ -215,20 +200,14 @@ MAX_WORDS=3
 clean.query<-tolower(trimws(stripWhitespace(removePunctuation(removeNumbers(query)))))
 query.words<-unlist(strsplit (clean.query," "))
 
-
-# Buscar candidatos de cada una de las palabras de la query
-
-context.regex<-paste(paste0("^",query.words,"_"),collapse="|")
-context.words<-paste(tokens_select(train.data$bigram.context, pattern=context.regex, valuetype = "regex"))
-#print(context.words)
-
-context.words<-unlist(sapply(X=context.words,FUN= function (x) lastn(x,n = 1,sep = "_")))
-#print(context.words)
+# look for candidates
+last_word <- lastn(query,1)
+candidate_pattern <- paste0(c("^","_"), last_word, "_", collapse = "|")
+candidate_index<-grep (names(train.data$bigram.freq),pattern = candidate_pattern)
+candidates<-unlist(sapply(X=names(train.data$bigram.freq)[candidate_index], FUN=function(x)lastn(x,1,"_")))
+candidates<-unique(c(candidates, train.data$stopwords))
 
 
-candidates<-unique(c(context.words, train.data$most.frequent.words, train.data$stopwords))
-#candidates<-unique(c(query.words,context.words)))
-#print(candidates)
 candidates<-data.frame(word=candidates)
 candidates$full.sentence<-paste(clean.query, candidates$word, sep = " ")
 
@@ -236,6 +215,7 @@ candidates$full.sentence<-paste(clean.query, candidates$word, sep = " ")
 candidates$bigrams<-sapply(candidates$full.sentence, function (x) lastn (x,2))
 candidates$trigrams<-sapply(candidates$full.sentence, function (x) lastn (x,3))
 candidates$tetragrams<-sapply(candidates$full.sentence, function (x) lastn (x,4))
+
 
 #Calculate frecuencies for candidates
 
@@ -254,9 +234,9 @@ candidates$tetragram.prob<-(1+candidates$tetragram.freq)/(1+sum(train.data$tetra
 #print(candidates)
 
 #WEIGHTS
-w1 <- .05
-w2 <- .35
-w3 <- .8
+w1 <- .00001
+w2 <- .4
+w3 <- 1-w1-w2
 
 candidates$prob<-(w1*candidates$bigram.prob+w2*candidates$trigram.prob+w3*candidates$tetragram.prob)/3
 
@@ -274,7 +254,7 @@ list(
 }
 
 
-predict.word("Tomorrow I will")
+predict.word("what a romantic moment")
 
 
 
@@ -301,16 +281,11 @@ rm(train.data,predict.word)
 
 
 - Añadir al training la búsqueda de los parámetros de backoff
-- ¿Hacer corpus_reshape(corp, to = "sentences") para contexto?
-- No guardar frecuencias por documentos, sino agrupar las frecuencias de cada token
-- Hacer clustering para palabras asociadas
 - Quitar de los candidatos las palabras que ya están en la frase
 - Calcular eficiencia, perplexity...
 - Eliminar del contexto todo lo que termine con una palabra frecuente
 - ser mas estricto al restringir los 4gramas, son lo que mas ocupa
-- Del corpus, quitar las stopwords SOLO del final del bigrama, no de antes. En vez de quitarlos con tm.remove, quitarlos con el token_select.
-- Poner un solo EOS
 - Eliminar nombres de persona
-- En las métricas de resultado, añadir el tamaño del training y profiling , proporcional al tamaño de la entrada
+
 
 

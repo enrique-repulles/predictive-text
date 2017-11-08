@@ -11,4 +11,4 @@ lastn<-function (str, n, sep=" ")
 }
 
 
-mark.sentences <- content_transformer (function(x) gsub(pattern="[.!?]", x=x, replacement = " EOS EOS EOS EOS EOS EOS "))
+mark.sentences <- content_transformer (function(x) gsub(pattern="[.!?]", x=x, replacement = " EOS "))

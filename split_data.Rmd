@@ -12,7 +12,7 @@ Split the data in train and test sets
 
 ```{r}
 
-stress.proportion<-.1  #(maxim proportion of the total data without hanging the computer)
+stress.proportion<-.01  #(maxim proportion of the total data without hanging the computer) 0.1
 training.proportion<-.6
 validation.proportion<-.4
 testing.proportion<-.4
@@ -67,4 +67,5 @@ files <- c("en_US.blogs.txt","en_US.news.txt","en_US.twitter.txt")
 sapply(X=files, FUN=sampleFile)
 
 ```
+
 
