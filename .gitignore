@@ -27,3 +27,6 @@ predict.RDS
 train.data.RDS
 predict_word.RDS
 evaluation.pdf
+training_data_10.RDS
+coursera_test_2.html
+coursera_test_2.nb.html

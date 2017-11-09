@@ -1,0 +1,212 @@
+---
+title: "Coursera test 2"
+output:
+  html_document: default
+  html_notebook: default
+  pdf_document: default
+---
+
+
+```{r}
+train.data <- readRDS(file="training_data_10.RDS")
+source("main.R")
+```
+
+
+
+## 1 
+When you breathe, I want to be the air for you. I'll be there for you, I'd live and I'd
+
+- sleep 
+- die +
+- give
+- eat
+
+Posible Response:
+
+```{r}
+
+query<-"When you breathe, I want to be the air for you. I'll be there for you, I'd live and I'd"
+solution <-predict.word (query) 
+solution$candidates[,c("full.sentence","words","prob")]
+
+```
+
+
+
+
+
+
+## 2 
+Guy at my table's wife got up to go to the bathroom and I asked about dessert and he started telling me about his
+
+- financial 
+- spiritual
+- marital + 
+- horticultural
+
+Posible Response:
+
+```{r}
+
+query<-"Guy at my table's wife got up to go to the bathroom and I asked about dessert and he started telling me about his"
+solution <-predict.word (query) 
+solution$candidates[,c("full.sentence","words","prob")]
+
+```
+
+
+
+## 3 
+I'd give anything to see arctic monkeys this
+
+- month  + 
+- morning
+- decade
+- weekend
+
+Posible Response:
+
+```{r}
+
+query<-"I'd give anything to see arctic monkeys this"
+solution <-predict.word (query) 
+solution$candidates[,c("full.sentence","words","prob")]
+
+```
+
+
+## 4 
+Talking to your mom has the same effect as a hug and helps reduce your
+
+- stress + 
+- happiness
+- sleepiness
+- hunger
+
+Posible Response:
+
+```{r}
+
+query<-"Talking to your mom has the same effect as a hug and helps reduce your"
+solution <-predict.word (query) 
+solution$candidates[,c("full.sentence","words","prob")]
+
+```
+
+
+## 5 
+When you were in Holland you were like 1 inch away from me but you hadn't time to take a
+
+- look ++++++++ 
+- picture
+- minute
+- walk
+
+Posible Response:
+
+```{r}
+
+query<-"When you were in Holland you were like 1 inch away from me but you hadn't time to take a"
+solution <-predict.word (query) 
+solution$candidates[,c("full.sentence","words","prob")]
+
+```
+
+
+## 6 
+I'd just like all of these questions answered, a presentation of evidence, and a jury to settle the
+
+- case + 
+- matter
+- incident
+- account
+
+Posible Response:
+
+```{r}
+
+query<-"I'd just like all of these questions answered, a presentation of evidence, and a jury to settle the"
+solution <-predict.word (query) 
+solution$candidates[,c("full.sentence","words","prob")]
+
+```
+
+
+## 7
+I can't deal with unsymetrical things. I can't even hold an uneven number of bags of groceries in each
+
+- hand 
+- finger
+- toe
+- arm + 
+
+Posible Response:
+
+```{r}
+
+query<-"I can't deal with unsymetrical things. I can't even hold an uneven number of bags of groceries in each"
+solution <-predict.word (query) 
+solution$candidates[,c("full.sentence","words","prob")]
+
+```
+
+
+## 8
+Every inch of you is perfect from the bottom to the
+
+- side 
+- middle
+- center
+- top + 
+
+Posible Response:
+
+```{r}
+
+query<-"Every inch of you is perfect from the bottom to the"
+solution <-predict.word (query) 
+solution$candidates[,c("full.sentence","words","prob")]
+
+```
+
+
+## 9
+I’m thankful my childhood was filled with imagination and bruises from playing
+
+- outside + 
+- inside
+- weekly
+- daily
+
+Posible Response:
+
+```{r}
+
+query<-"I’m thankful my childhood was filled with imagination and bruises from playing"
+solution <-predict.word (query) 
+solution$candidates[,c("full.sentence","words","prob")]
+
+```
+
+
+
+## 10 
+I like how the same people are in almost all of Adam Sandler's
+
+- pictures
+- stories
+- movies + 
+- novels
+
+Posible Response:
+
+```{r}
+
+query<-"I like how the same people are in almost all of Adam Sandler's"
+solution <-predict.word (query) 
+solution$candidates[,c("full.sentence","words","prob")]
+
+```
+
+
