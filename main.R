@@ -77,7 +77,6 @@ train <- function(training.dir, w1, w2, w3, t1, t2, t3, t4)
 predict.word <- function (query) 
 {
   clean.query<-tolower(trimws(stripWhitespace(removePunctuation(removeNumbers(query)))))
-  
   candidates<-candidates.probability(clean.query)
   
   # Remove repeated words

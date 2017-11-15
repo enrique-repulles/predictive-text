@@ -1,13 +1,23 @@
 
 library(shiny)
 
+setwd("../..")
+train.data <<- readRDS(file="training_data_10.RDS")
+source("main.R")
+
+
+
 # Define server logic required to draw a histogram
 shinyServer(function(input, output) {
-   
+
   observeEvent(input$submit, {
-    result=findCandidates(input$query)
-    output$bestCandidate<-renderText(result$bestCandidate)
-    output$candidates<-renderTable(result$candidates)
+    if (nchar(input$query)>0)
+    {
+      result=findCandidates(input$query)
+      output$bestCandidate<-renderText(result$bestCandidate)
+      output$candidates<-renderTable(result$candidates)
+    }
+    
   }
   )
   
@@ -15,11 +25,10 @@ shinyServer(function(input, output) {
 
 findCandidates<-function (query)
 {
-  candidates<-data.frame(candidates=paste(query,c("uno","dos","tres")), probability=rnorm(n = 3))
-  bestCandidate <- paste0(query,"BEST",collapse = " ")
+  prediction  <-predict.word (query) 
   list(
-    candidates=candidates,
-    bestCandidate=bestCandidate
+    candidates= prediction$candidates[,c("word","prob")],
+    bestCandidate=as.character(prediction$word)
   )
   
 }
