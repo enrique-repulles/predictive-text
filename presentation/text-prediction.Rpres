@@ -1,0 +1,57 @@
+1 text-prediction
+========================================================
+author: Enrique Repullés
+date: 
+autosize: true
+
+(Intro del proposito de la presentacion)
+
+2 Slide Title 
+========================================================
+
+Descripcion de la APP, por qué mola, cómo usarla, url...
+
+Does the slide deck describe the app, give instructions, and describe how it functions?
+
+
+
+
+3 Slide Title 
+========================================================
+
+Técnica usada para la construccion 
+
+Corpora usada, se elimina puntuación, se buscan ngramas etc 
+
+
+4 Slide Title 
+========================================================
+Algoritmo usado para la predicción
+
+Como se accede al modelo generado
+
+
+Does the slide deck contain a description of the algorithm used to make the prediction?
+
+
+
+5 Slide Title 
+========================================================
+
+Descripcion del testing hecho: 
+
+se sacó una muestra aleatoria para test, 
+accuracy obtenido...
+
+
+
+
+TODO 
+========================================================
+
+Create a slide deck promoting your product. Write 5 slides using RStudio Presenter explaining your product and why it is awesome!
+Questions to consider
+
+How can you briefly explain how your predictive model works?
+How can you succinctly quantitatively summarize the performance of your prediction algorithm?
+How can you show the user how the product works?
