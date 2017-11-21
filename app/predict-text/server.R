@@ -2,7 +2,7 @@
 library(shiny)
 
 setwd("../..")
-train.data <<- readRDS(file="training_data_10.RDS")
+train.data <<- readRDS(file="train.data.RDS")
 source("main.R")
 
 
@@ -13,8 +13,8 @@ shinyServer(function(input, output) {
   observeEvent(input$submit, {
     if (nchar(input$query)>0)
     {
-      result=findCandidates(input$query)
-      output$bestCandidate<-renderText(result$bestCandidate)
+      result=predict.word(input$query)
+      output$bestCandidate<-renderText(result$word)
       output$candidates<-renderTable(result$candidates)
     }
     
