@@ -1,0 +1,13 @@
+deploy urls
+===========
+
+Repository
+https://github.com/enrique-repulles/predictive-text
+
+App: 
+
+https://enrique-repulles.shinyapps.io/predict-text/
+
+
+Presentation: 
+http://rpubs.com/Enrique-Repulles/333087

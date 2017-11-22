@@ -123,38 +123,41 @@ $(document).ready(function () {
 <h1>1 Text Prediction Application</h1>
 <p>author: Enrique Repullés. date: 22-11-2017 autosize: true</p>
 <ul>
-<li>Application for coursera Data Science Capstone</li>
-<li>Purpose: to predict the next word in a sentence</li>
+<li>Application for coursera Data Science Capstone project.</li>
+<li>Purpose: to predict the next word in a sentence.</li>
 </ul>
 </div>
 <div id="the-application" class="section level1">
 <h1>2 The application</h1>
-<p>Descripcion de la APP, por qu? mola, c?mo usarla, url…</p>
-<p>Does the slide deck describe the app, give instructions, and describe how it functions?</p>
-<p>App:</p>
-<p><a href="https://enrique-repulles.shinyapps.io/predict-text/" class="uri">https://enrique-repulles.shinyapps.io/predict-text/</a></p>
-<p><a href="https://github.com/enrique-repulles/predictive-text" class="uri">https://github.com/enrique-repulles/predictive-text</a></p>
+<p>Nowadays there are a lot of webs and social networks that work with text, and several input methods in all the devices. Therefore is of uttermost importance to improve the user’s agility when entering text. Our application does this trying to predicting the next word in a sentence. A prototype of the application can be found here:</p>
+<p><a href="https://enrique-repulles.shinyapps.io/predict-text/">enrique-repulles.shinyapps.io/predict-text/</a></p>
+<p><strong>Usage:</strong> insert the sentence in the “Insert text” box and press the “predict” button. The prediction will be shown, and also a word-cloud of the possible candidates.</p>
+<p>Sources can be found in <a href="https://github.com/enrique-repulles/predictive-text">github.com/enrique-repulles/predictive-text</a></p>
 </div>
-<div id="slide-title" class="section level1">
-<h1>3 Slide Title</h1>
-<p>T?cnica usada para la construccion</p>
-<p>Corpora usada, se elimina puntuaci?n, se buscan ngramas etc</p>
+<div id="model-construction" class="section level1">
+<h1>3 Model construction</h1>
+<p>For building the model, the raw material were some texts with excerpts from different sources:</p>
+<ul>
+<li>blogs</li>
+<li>newsletters</li>
+<li>twitteraccount</li>
+</ul>
+<p>Each file was scanned for tokens: single words, bigrams (pairs of consecutive words), trigrams and tetragrams. Some word cleaning was done: numbers and punctuation characters were removed.</p>
+<p>Then the frequency of each token was then calculated. These frequencies are used later for the prediction phase.</p>
 </div>
-<div id="slide-title-1" class="section level1">
-<h1>4 Slide Title</h1>
-<p>Algoritmo usado para la predicci?n</p>
-<p>Como se accede al modelo generado</p>
-<p>Does the slide deck contain a description of the algorithm used to make the prediction?</p>
+<div id="word-prediction" class="section level1">
+<h1>4 Word prediction</h1>
+<p>The prediction algorithm works as follows:</p>
+<p>When the user enters a sentence in the app, it is parsed into words, and then the list of possible candidates is built, based on the most frequent training tokens that appear around the words. The list is supplemented with the most frequent tokens and stop words.</p>
+<p>Once the candidates list is built, the application looks for the most promising, assigning a probability to each one. To obtain the probabilities, it retrieves the frequency of the tetragram, trigram, bigram and single word, and mixes up all frequencies in a weighted sum.</p>
+<p>The candidate with the highest probability is offered to the user as most promising word.</p>
 </div>
-<div id="slide-title-2" class="section level1">
-<h1>5 Slide Title</h1>
-<p>Descripcion del testing hecho:</p>
-<p>se sac? una muestra aleatoria para test, accuracy obtenido…</p>
-</div>
-<div id="todo" class="section level1">
-<h1>TODO</h1>
-<p>Create a slide deck promoting your product. Write 5 slides using RStudio Presenter explaining your product and why it is awesome! Questions to consider</p>
-<p>How can you briefly explain how your predictive model works? How can you succinctly quantitatively summarize the performance of your prediction algorithm? How can you show the user how the product works?</p>
+<div id="performance-estimation" class="section level1">
+<h1>5 Performance estimation</h1>
+<p>For estimating the algorithm performance, the following method was used:</p>
+<p>The corpora was split into training and test sets. The text in the training set was used to find the token frequencies, and the app was run against sentences from the test set and the number of successes was counted.</p>
+<p>A compromise between accuracy and data size was done to allow the algorithm data to fit in small devices. A final accuracy of 27% accuracy was obtained.</p>
+<p>More information at <a href="https://github.com/enrique-repulles/predictive-text">github.com/enrique-repulles/predictive-text</a></p>
 </div>
 
 
