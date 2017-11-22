@@ -10,7 +10,7 @@ source("main.R")
 
 # Define server logic required to draw a histogram
 shinyServer(function(input, output) {
-
+  
   observeEvent(input$submit, {
     if (nchar(input$query)>0)
     {
