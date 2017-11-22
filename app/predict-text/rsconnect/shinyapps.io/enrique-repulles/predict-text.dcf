@@ -1,0 +1,12 @@
+name: predict-text
+title: predict-text
+username:
+account: enrique-repulles
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 238864
+bundleId: 1090173
+url: https://enrique-repulles.shinyapps.io/predict-text/
+when: 1511353667.84489
+asMultiple: FALSE
+asStatic: FALSE
